@@ -208,6 +208,7 @@
   .btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--pinkDark)}
   .btn.ghost{background:linear-gradient(180deg,#7cc7ff,var(--blue));border-color:#1f6fbe;box-shadow:0 7px 0 #1f6fbe;font-size:15px;padding:10px 22px}
   .btn.ghost:hover{box-shadow:0 10px 0 #1f6fbe}.btn.ghost:active{box-shadow:0 2px 0 #1f6fbe}
+  .btn.small{font-size:16px;padding:10px 20px}
   .bigStars{font-size:54px;line-height:1;margin:6px 0 10px;display:flex;justify-content:center;gap:6px}
   .bigStars span{color:#e4d6c4;text-shadow:0 3px 0 rgba(87,40,26,.25);transform:scale(.7)}
   .bigStars span.earn{color:var(--yellow);animation:starPop .55s cubic-bezier(.3,2,.5,1) forwards}
@@ -257,7 +258,7 @@
       <button class="iconBtn" id="btnFS" title="Vollbild an/aus">⛶</button>
       <button class="iconBtn" id="btnMusic" title="Musik an/aus">🎵</button>
       <button class="iconBtn" id="btnSound" title="Soundeffekte an/aus">🔊</button>
-      <button class="iconBtn" id="btnRestart" title="Level neu starten">↻</button>
+      <button class="iconBtn" id="btnRestart" title="Neu starten">↻</button>
     </div>
   </header>
 
@@ -286,6 +287,7 @@
         <li>🌈 <span><b>5er-Reihe</b> → Farb-Bombe</span></li>
         <li>🍮 <span><b>Gerade Levels</b>: Gelee befreien!</span></li>
         <li>👹 <span><b>Jede 5. Stufe</b>: Schoko-Boss!</span></li>
+        <li>📅 <span><b>Tages-Challenge</b>: gleiches Brett, eigener Rekord</span></li>
         <li>⏱️ <span><b>Zeitjagd</b>: 60 Sek. Punkte-Rekord</span></li>
         <li>🔨 <span><b>Kombo ≥ 4</b> = Hammer, <b>≥ 5</b> = Rakete 🚀</span></li>
       </ul>
@@ -309,6 +311,7 @@
     <span class="chip">🌈 5er → Bombe</span>
     <span class="chip">🍮 Gelee</span>
     <span class="chip">👹 Boss</span>
+    <span class="chip">📅 Daily</span>
     <span class="chip">⏱️ Zeitjagd</span>
   </div>
 </div>
@@ -332,18 +335,20 @@
     </div>
     <div class="btnRow">
       <button class="btn" id="btnStart">Abenteuer 🍬</button>
-      <button class="btn ghost" id="btnZeit" style="font-size:20px;padding:12px 26px">Zeitjagd ⏱️</button>
+      <button class="btn small" id="btnZeit" style="background:linear-gradient(180deg,#7cc7ff,var(--blue));border-color:#1f6fbe;box-shadow:0 7px 0 #1f6fbe">Zeitjagd ⏱️</button>
+      <button class="btn small" id="btnDaily" style="background:linear-gradient(180deg,#8ce7bb,#2eb872);border-color:#1d7a50;box-shadow:0 7px 0 #1d7a50">Tages-Challenge 📅</button>
     </div>
     <p class="tinyNote">🎵 Musik & ⛶ Vollbild starten automatisch (oben rechts abschaltbar).</p>
   </div>
 </div>
 
-<!-- Ende (Sieg / Zeit um) -->
+<!-- Ende (Sieg / Zeit um / Daily) -->
 <div class="ov hide" id="ovWin">
   <div class="ovCard sun">
     <h2 class="ovTitle" id="winTitle">Süß gewonnen! 🎉</h2>
     <div class="bigStars" id="winStars"><span>★</span><span>★</span><span>★</span></div>
     <p class="scoreLine">Punkte: <b id="winScore">0</b></p>
+    <p class="scoreLine" style="font-size:14px">🔥 Beste Kombo: <b id="winCombo" style="font-size:18px">×0</b></p>
     <p class="recLine" id="recLineWin">🏆 Rekord: <b id="winBest">0</b> <span class="newRec">NEUER REKORD!</span></p>
     <div class="btnRow">
       <button class="btn" id="btnNext">Nächstes Level ➜</button>
@@ -358,6 +363,7 @@
     <h2 class="ovTitle">Aufgenascht! 😵</h2>
     <p class="tag">Alle Züge weg – das Ziel war so nah…</p>
     <p class="scoreLine">Punkte: <b id="loseScore">0</b></p>
+    <p class="scoreLine" style="font-size:14px">🔥 Beste Kombo: <b id="loseCombo" style="font-size:18px">×0</b></p>
     <p class="recLine" id="recLineLose">🏆 Rekord: <b id="loseBest">0</b> <span class="newRec">NEUER REKORD!</span></p>
     <button class="btn" id="btnRetry">Nochmal versuchen 🔁</button>
   </div>
@@ -366,7 +372,10 @@
 <script>
 'use strict';
 /* ============================================================
-   BONBON BLITZ v6 – stabil + Diagnose + Zeitjagd-Modus
+   BONBON BLITZ v7 – Anti-Hänger + Tages-Challenge
+   - Fall-Zwangsbremse: kein Bonbon kann ewig fallen
+   - Flow-Token: Zombie-Spielzüge werden hart abgebrochen
+   - Watchdog 6s, HUD-Update nur bei Änderung
    ============================================================ */
 
 /* ---------- Fehler sichtbar machen ---------- */
@@ -408,11 +417,21 @@ let fever=0, rush=false, rushT=0, goldTimer=8, tool=null;
 let hammerCharges=1, rocketCharges=0, mousePos=null, star3Done=false;
 let jelly=null, jellyTotal=0;
 let boss=null, bossMusic=false;
-let mode='story', zeitLeft=60, lastTick=99, lastShownZeit=-1, campaignLevel=1;
-let best=0, zeitBest=0;
-try{ best=+(localStorage.getItem('bb_best')||0); zeitBest=+(localStorage.getItem('bb_best_zeit')||0); }catch(e){}
+let mode='story', zeitLeft=60, lastTick=99, campaignLevel=1;
+let best=0, zeitBest=0, dailyBest=0;
+try{
+  best=+(localStorage.getItem('bb_best')||0);
+  zeitBest=+(localStorage.getItem('bb_best_zeit')||0);
+  dailyBest=+(localStorage.getItem('bb_best_daily')||0);
+}catch(e){}
 
 let lowFX=false, frames=0, fpsVal=60, ftAcc=0, ftCnt=0, slowStreak=0;
+let flowId=0, anyFallT=0, liveCombo=0, levelMaxCombo=0, lastHudKey='';
+let dailyRand=null;
+
+function dailySeed(){ const d=new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function rnd(){ return dailyRand?dailyRand():Math.random(); }
 
 const $=id=>document.getElementById(id);
 const k2=(r,c)=>r+','+c;
@@ -423,11 +442,11 @@ const fmt=n=>{ try{return Number(n).toLocaleString('de-DE');}catch(e){return Str
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 
 function makeCandy(type,r,c){
-  return {type,special:null,r,c,x:c*cell+cell/2,y:r*cell+cell/2,vy:0,falling:false,tw:null,dead:false,phase:Math.random()*6.28,pulse:0,squash:0,gold:0};
+  return {type,special:null,r,c,x:c*cell+cell/2,y:r*cell+cell/2,vy:0,falling:false,tw:null,dead:false,phase:rnd()*6.28,pulse:0,squash:0,gold:0};
 }
-const randType=()=>Math.floor(Math.random()*TYPES);
+const randType=()=>Math.floor(rnd()*TYPES);
 
-/* ================= Audio (ein wiederverwendeter Noise-Puffer!) ================= */
+/* ================= Audio ================= */
 let AC=null, NOISE=null;
 function ac(){ try{ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC&&AC.state==='suspended')AC.resume(); }catch(e){} return AC; }
 function getNoise(){
@@ -447,9 +466,9 @@ function playNoiseAbs(t,dur,vol,freq,dest){
     const src=a.createBufferSource(); src.buffer=buf;
     const f=a.createBiquadFilter(); f.type='lowpass'; f.frequency.value=freq||900;
     const g=a.createGain();
-    if(t===null){ g.gain.value=vol; src.connect(f).connect(g).connect(dest); src.start(0,Math.random()*.25,dur); }
+    if(t===null){ g.gain.value=vol; src.connect(f).connect(g).connect(dest); src.start(0,rnd()*.25,dur); }
     else{ g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-      src.connect(f).connect(g).connect(dest); src.start(t,Math.random()*.25,dur); }
+      src.connect(f).connect(g).connect(dest); src.start(t,rnd()*.25,dur); }
   }catch(e){}
 }
 function tone(f,dur,type,vol,delay,slide){
@@ -661,7 +680,7 @@ function blast(cand,set){
     const types=new Set();
     for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++){ const q=grid[rr][cc]; if(q&&!q.blocker) types.add(q.type); }
     const arr=[...types];
-    if(arr.length){ const t=arr[Math.floor(Math.random()*arr.length)];
+    if(arr.length){ const t=arr[Math.floor(rnd()*arr.length)];
       for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++){ const q=grid[rr][cc]; if(q&&!q.blocker&&q.type===t) set.add(k2(rr,cc)); } }
   }
 }
@@ -730,8 +749,8 @@ async function bossDefeated(){
   over=true;
   setTimeout(showWin,900);
 }
-async function bossCheck(){
-  if(boss&&!boss.dead&&boss.hp<=0){ await bossDefeated(); return true; }
+async function bossCheck(my){
+  if(boss&&!boss.dead&&boss.hp<=0){ await bossDefeated(); return my!==flowId; }
   return false;
 }
 async function doClear(set,spawnKeys,combo,opts){
@@ -801,23 +820,26 @@ function collapse(){
 function waitFalls(){
   return new Promise(res=>{
     fallsResolve=res;
-    setTimeout(()=>{ if(fallsResolve){fallsResolve=null;res();} },1500);
+    setTimeout(()=>{ if(fallsResolve){fallsResolve=null;res();} },1200);
   });
 }
-async function cascade(){
+async function cascade(my){
   let combo=0, guard=0;
   while(guard++<40){
-    if(over)break;
+    if(my!==flowId||over)break;
     const groups=findMatches();
     if(!groups.length)break;
     combo++;
+    liveCombo=combo;
+    levelMaxCombo=Math.max(levelMaxCombo,combo);
     comboPop(combo,rush);
     if(combo>=3) shake(4+combo*2);
     const {clearSet,specials}=analyze(groups);
     expand(clearSet);
     const spawnKeys=new Set(specials.map(s=>s.r+','+s.c));
     await doClear(clearSet,spawnKeys,combo);
-    if(await bossCheck())break;
+    if(my!==flowId)break;
+    if(await bossCheck(my))break;
     for(const s of specials){
       const cand=grid[s.r]&&grid[s.r][s.c];
       if(cand&&!cand.blocker){ cand.special=s.special; cand.pulse=1; sSpawn(); starBurst(cand.x,cand.y); }
@@ -827,7 +849,7 @@ async function cascade(){
   }
   return combo;
 }
-async function bombSwap(a,b){
+async function bombSwap(a,b,my){
   const bombs=[a,b].filter(x=>x.special==='bomb');
   const other=[a,b].find(x=>x.special!=='bomb');
   const set=new Set();
@@ -840,16 +862,20 @@ async function bombSwap(a,b){
   }
   expand(set);
   await sleep(90);
+  if(my!==flowId)return;
   sBomb(); flash(.55); waves.push({x:bombs[0].x,y:bombs[0].y,t:0,life:.6,max:sizePx*.75});
   await doClear(set,new Set(),1,{boom:true});
+  if(my!==flowId)return;
   collapse(); await waitFalls();
 }
-async function duoSpecial(a,b){
+async function duoSpecial(a,b,my){
   const set=new Set([k2(a.r,a.c),k2(b.r,b.c)]);
   blast(a,set); blast(b,set); expand(set);
   await sleep(70);
+  if(my!==flowId)return;
   sBomb();
   await doClear(set,new Set(),1,{boom:true});
+  if(my!==flowId)return;
   collapse(); await waitFalls();
 }
 function swapAnim(a,b){
@@ -871,31 +897,36 @@ async function trySwap(a,b){
   if(busy||over||!a||!b||a.blocker||b.blocker)return;
   if(Math.abs(a.r-b.r)+Math.abs(a.c-b.c)!==1)return;
   busy=true; busySince=tGlobal;
+  const my=++flowId;
   try{
     sel=null; hint=null; hintTimer=0;
     lastSwap=[{r:a.r,c:a.c},{r:b.r,c:b.c}];
-    if(mode==='story'){ moves--; updateHUD(); }
+    if(mode!=='zeit'){ moves--; updateHUD(); }
     sSwap();
     await swapAnim(a,b);
+    if(my!==flowId)return;
     swapCells(a,b);
     const hasBomb=a.special==='bomb'||b.special==='bomb';
     let acted=false;
-    if(hasBomb){ await bombSwap(a,b); acted=true; }
-    else if(a.special&&b.special){ await duoSpecial(a,b); acted=true; }
+    if(hasBomb){ await bombSwap(a,b,my); if(my!==flowId)return; acted=true; }
+    else if(a.special&&b.special){ await duoSpecial(a,b,my); if(my!==flowId)return; acted=true; }
     else if(findMatches().length){ acted=true; }
     if(!acted){
-      sBad(); await swapAnim(a,b); swapCells(a,b);
+      sBad(); await swapAnim(a,b);
+      if(my!==flowId)return;
+      swapCells(a,b);
       a.pulse=.6; b.pulse=.6;
-      if(mode==='story'){ moves++; updateHUD(); }
+      if(mode!=='zeit'){ moves++; updateHUD(); }
       return;
     }
-    const maxCombo=await cascade();
+    const maxCombo=await cascade(my);
+    if(my!==flowId)return;
     rewardCombo(maxCombo);
     afterMove();
   }catch(err){
     showErr('Zug: '+err.message);
   }finally{
-    busy=false; busySince=0;
+    if(my===flowId){ busy=false; busySince=0; }
   }
 }
 function jellyRemaining(){
@@ -916,7 +947,7 @@ function afterMove(){
   if(over)return;
   updateHUD();
   if(checkObjectives())return;
-  if(mode==='story'&&moves<=0){
+  if(mode!=='zeit'&&moves<=0){
     over=true;
     const won=!boss&&!jelly&&score>=goal;
     setTimeout(()=>{ won?showWin():showLose(); },550);
@@ -956,7 +987,7 @@ function shuffleBoard(){
   let ok=false,tries=0;
   while(!ok&&tries++<300){
     const types=list.map(c=>c.type);
-    for(let i=types.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const tmp=types[i];types[i]=types[j];types[j]=tmp; }
+    for(let i=types.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); const tmp=types[i];types[i]=types[j];types[j]=tmp; }
     list.forEach((c,i)=>c.type=types[i]);
     ok = findMatches().length===0 && !!findMove();
   }
@@ -974,6 +1005,7 @@ function clearTool(){
 async function hammerHit(cand){
   if(busy||over)return;
   busy=true; busySince=tGlobal;
+  const my=++flowId;
   try{
     clearTool();
     hammerCharges--; updateToolUI();
@@ -981,17 +1013,21 @@ async function hammerHit(cand){
     expand(set);
     shake(8); tone(520,.18,'square',.16,0,-200); noiseBurst(.15,.2,1800);
     await doClear(set,new Set(),1);
-    if(await bossCheck())return;
+    if(my!==flowId)return;
+    if(await bossCheck(my))return;
     collapse(); await waitFalls();
-    rewardCombo(await cascade());
+    if(my!==flowId)return;
+    rewardCombo(await cascade(my));
+    if(my!==flowId)return;
     if(checkObjectives())return;
     if(!findMove()) shuffleBoard();
   }catch(err){ showErr('Hammer: '+err.message); }
-  finally{ busy=false; busySince=0; }
+  finally{ if(my===flowId){ busy=false; busySince=0; } }
 }
 async function rocketHit(cand){
   if(busy||over)return;
   busy=true; busySince=tGlobal;
+  const my=++flowId;
   try{
     clearTool();
     rocketCharges--; updateToolUI();
@@ -1002,13 +1038,16 @@ async function rocketHit(cand){
     sRocket(); shake(10);
     waves.push({x:cand.x,y:cand.y,t:0,life:.5,max:sizePx*.6});
     await doClear(set,new Set(),1);
-    if(await bossCheck())return;
+    if(my!==flowId)return;
+    if(await bossCheck(my))return;
     collapse(); await waitFalls();
-    rewardCombo(await cascade());
+    if(my!==flowId)return;
+    rewardCombo(await cascade(my));
+    if(my!==flowId)return;
     if(checkObjectives())return;
     if(!findMove()) shuffleBoard();
   }catch(err){ showErr('Rakete: '+err.message); }
-  finally{ busy=false; busySince=0; }
+  finally{ if(my===flowId){ busy=false; busySince=0; } }
 }
 function setTool(t){
   if(busy||over)return;
@@ -1027,35 +1066,35 @@ function pushParticle(p){
 function burst(x,y,color,n){
   if(lowFX)n=Math.ceil(n/2);
   for(let i=0;i<n;i++) pushParticle({
-    kind:Math.random()<.35?'sq':'dot',
-    x,y,vx:(Math.random()-.5)*cell*7,vy:(Math.random()-.75)*cell*7,g:cell*14,
-    life:.45+Math.random()*.45,t:0,color,r:cell*(.05+Math.random()*.09),
-    rot:Math.random()*6.3,vr:(Math.random()-.5)*12
+    kind:rnd()<.35?'sq':'dot',
+    x,y,vx:(rnd()-.5)*cell*7,vy:(rnd()-.75)*cell*7,g:cell*14,
+    life:.45+rnd()*.45,t:0,color,r:cell*(.05+rnd()*.09),
+    rot:rnd()*6.3,vr:(rnd()-.5)*12
   });
 }
 function heartBurst(x,y,n){
   if(lowFX)n=Math.ceil(n/2);
   for(let i=0;i<n;i++) pushParticle({
-    kind:'heart',x,y,vx:(Math.random()-.5)*cell*5,vy:-cell*(2+Math.random()*4),g:cell*9,
-    life:.8+Math.random()*.4,t:0,color:'#ff6b9d',r:cell*(.08+Math.random()*.07),
-    rot:(Math.random()-.5)*.8,vr:(Math.random()-.5)*3
+    kind:'heart',x,y,vx:(rnd()-.5)*cell*5,vy:-cell*(2+rnd()*4),g:cell*9,
+    life:.8+rnd()*.4,t:0,color:'#ff6b9d',r:cell*(.08+rnd()*.07),
+    rot:(rnd()-.5)*.8,vr:(rnd()-.5)*3
   });
 }
 function starBurst(x,y){
   for(let i=0;i<(lowFX?3:6);i++) pushParticle({
-    kind:'star',x,y,vx:(Math.random()-.5)*cell*6,vy:(Math.random()-.7)*cell*6,g:cell*10,
-    life:.7,t:0,color:'#ffd23f',r:cell*(.09+Math.random()*.07),
-    rot:Math.random()*6.3,vr:(Math.random()-.5)*8
+    kind:'star',x,y,vx:(rnd()-.5)*cell*6,vy:(rnd()-.7)*cell*6,g:cell*10,
+    life:.7,t:0,color:'#ffd23f',r:cell*(.09+rnd()*.07),
+    rot:rnd()*6.3,vr:(rnd()-.5)*8
   });
 }
 function candyRain(){
   for(let i=0;i<10;i++){
-    const col=COLORS[Math.floor(Math.random()*TYPES)];
+    const col=COLORS[Math.floor(rnd()*TYPES)];
     pushParticle({
-      kind:'rain',x:Math.random()*sizePx,y:-20-Math.random()*100,
-      vx:(Math.random()-.5)*40,vy:80+Math.random()*140,g:cell*5,
-      life:1.6,t:0,color:col.base,r:cell*(.13+Math.random()*.1),
-      rot:Math.random()*6.3,vr:(Math.random()-.5)*6
+      kind:'rain',x:rnd()*sizePx,y:-20-rnd()*100,
+      vx:(rnd()-.5)*40,vy:80+rnd()*140,g:cell*5,
+      life:1.6,t:0,color:col.base,r:cell*(.13+rnd()*.1),
+      rot:rnd()*6.3,vr:(rnd()-.5)*6
     });
   }
 }
@@ -1096,14 +1135,14 @@ function confetti(container,n){
 const starEls=[...document.querySelectorAll('.track .star')];
 function updateHUD(){
   try{
+    const key=mode+'|'+score+'|'+(mode==='zeit'?Math.ceil(zeitLeft):moves)+'|'+(boss&&!boss.dead?boss.hp:0)+'|'+jellyRemaining();
+    if(key===lastHudKey)return;
+    lastHudKey=key;
     if(mode==='zeit'){
       const z=Math.max(0,Math.ceil(zeitLeft));
-      if(z!==lastShownZeit){
-        lastShownZeit=z;
-        $('movesNum').textContent=z;
-        $('movesNum').classList.toggle('low',z<=10);
-        $('fill').style.width=(Math.max(0,zeitLeft)/60*100)+'%';
-      }
+      $('movesNum').textContent=z;
+      $('movesNum').classList.toggle('low',z<=10);
+      $('fill').style.width=(Math.max(0,zeitLeft)/60*100)+'%';
       $('movesLbl').textContent='Zeit';
       $('goalTxt').textContent='⏱️';
       $('goalTxt').classList.add('pulse');
@@ -1136,7 +1175,7 @@ function updateHUD(){
         if(i===2&&!star3Done){ star3Done=true; addHammer(); }
       }
     });
-    if(mode==='story'&&!jelly&&!boss&&score>=goal&&!goalHit){
+    if(mode!=='zeit'&&!jelly&&!boss&&score>=goal&&!goalHit){
       goalHit=true;
       floaters.push({x:sizePx/2,y:sizePx/2,txt:'⭐ Ziel erreicht!',t:0,life:1.3,size:30,gold:true});
       tone(880,.3,'triangle',.2); tone(1174,.35,'triangle',.2,.12);
@@ -1154,36 +1193,44 @@ function cascadeIn(){
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const cand=grid[r][c];
     if(!cand||cand.blocker)continue;
-    cand.y=-((ROWS-r)*cell)-c*cell*.35-Math.random()*cell*.6;
+    cand.y=-((ROWS-r)*cell)-c*cell*.35-rnd()*cell*.6;
     cand.vy=0; cand.falling=true;
   }
 }
+function resetCommon(){
+  score=0; over=false; goalHit=false; star3Done=false;
+  sel=null; hint=null; hintTimer=0; busy=false; busySince=0;
+  fever=0; rush=false; rushT=0; goldTimer=6; clearTool();
+  hammerCharges=1; rocketCharges=0;
+  levelMaxCombo=0; liveCombo=0; anyFallT=0; lastHudKey='';
+  flowId++;
+  document.body.classList.remove('rushActive');
+  $('boardFrame').classList.remove('rush');
+  $('rushTag').classList.remove('show');
+  particles=[]; floaters=[]; waves=[]; dying=[];
+  jelly=null; jellyTotal=0; boss=null;
+}
 function startLevel(lv){
   try{
+    dailyRand=null;
+    resetCommon();
     mode='story';
     level=lv; campaignLevel=lv; TYPES=lv>=3?6:5;
     goal=1800+(lv-1)*1400;
-    moves=22; score=0; over=false; goalHit=false; star3Done=false;
-    sel=null; hint=null; hintTimer=0; busy=false; busySince=0;
-    fever=0; rush=false; rushT=0; goldTimer=7; clearTool();
-    document.body.classList.remove('rushActive');
-    $('boardFrame').classList.remove('rush');
-    $('rushTag').classList.remove('show');
-    particles=[]; floaters=[]; waves=[]; dying=[];
-    jelly=null; jellyTotal=0; boss=null;
+    moves=22;
     const isBoss=lv%5===0;
     bossMusic=isBoss;
     if(isBoss){
-      boss={hp:8+lv*2,maxHp:8+lv*2,r:ROWS-1,c:3,hurt:0,dead:false,phase:Math.random()*6,spawn:1};
+      boss={hp:8+lv*2,maxHp:8+lv*2,r:ROWS-1,c:3,hurt:0,dead:false,phase:rnd()*6,spawn:1};
       goal=Math.round(goal*.8);
     }else if(lv>=2&&lv%2===0){
       jelly=Array.from({length:ROWS},()=>Array(COLS).fill(0));
       const K=Math.min(24,8+lv*2);
       let placed=0,guard=0;
       while(placed<K&&guard++<600){
-        const r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);
+        const r=Math.floor(rnd()*ROWS),c=Math.floor(rnd()*COLS);
         if(jelly[r][c])continue;
-        jelly[r][c]=(lv>=6&&Math.random()<.4)?2:1;
+        jelly[r][c]=(lv>=6&&rnd()<.4)?2:1;
         placed++;
       }
       jellyTotal=jellyRemaining();
@@ -1191,7 +1238,6 @@ function startLevel(lv){
     }
     $('lvl').textContent=lv;
     $('bestScore').textContent=fmt(best);
-    lastShownZeit=-1;
     updateToolUI();
     fillBoard();
     placeBossBlocker();
@@ -1206,18 +1252,12 @@ function startLevel(lv){
 }
 function startZeit(){
   try{
+    dailyRand=null;
+    resetCommon();
     mode='zeit';
     level=1; TYPES=6; goal=6000;
-    zeitLeft=60; lastTick=99; lastShownZeit=-1;
-    moves=999; score=0; over=false; goalHit=false; star3Done=false;
-    sel=null; hint=null; hintTimer=0; busy=false; busySince=0;
-    fever=0; rush=false; rushT=0; goldTimer=5; clearTool();
-    hammerCharges=1; rocketCharges=1;
-    document.body.classList.remove('rushActive');
-    $('boardFrame').classList.remove('rush');
-    $('rushTag').classList.remove('show');
-    particles=[]; floaters=[]; waves=[]; dying=[];
-    jelly=null; boss=null; bossMusic=false;
+    zeitLeft=60; lastTick=99;
+    moves=999; rocketCharges=1;
     $('lvl').textContent='⏱️';
     $('bestScore').textContent=fmt(best);
     updateToolUI();
@@ -1229,10 +1269,30 @@ function startZeit(){
     }
   }catch(err){ showErr('Zeitjagd-Start: '+err.message); }
 }
+function startDaily(){
+  try{
+    dailyRand=mulberry32(dailySeed());
+    resetCommon();
+    mode='daily';
+    level=0; TYPES=6; goal=4000; moves=22;
+    $('lvl').textContent='📅';
+    $('bestScore').textContent=fmt(best);
+    updateToolUI();
+    fillBoard(); fitBoard(); cascadeIn(); updateHUD();
+    dailyRand=null; // ab hier wieder normaler Zufall (nur das Startbrett ist fix)
+    if(started){
+      banner('TAGES-CHALLENGE',true);
+      tone(660,.15,'triangle',.18); tone(880,.2,'triangle',.18,.1);
+      toast('📅 Heute gleiches Brett für alle – hol den Rekord!');
+    }
+  }catch(err){ showErr('Daily-Start: '+err.message); }
+}
 function finishRun(){
   let newRec=false;
   if(mode==='zeit'){
     if(score>zeitBest){ zeitBest=score; newRec=true; try{localStorage.setItem('bb_best_zeit',String(zeitBest));}catch(e){} }
+  }else if(mode==='daily'){
+    if(score>dailyBest){ dailyBest=score; newRec=true; try{localStorage.setItem('bb_best_daily',String(dailyBest));}catch(e){} }
   }else{
     if(score>best){ best=score; newRec=true; try{localStorage.setItem('bb_best',String(best));}catch(e){} }
     $('bestScore').textContent=fmt(best);
@@ -1246,6 +1306,11 @@ function showWin(){
     $('winBest').textContent=fmt(zeitBest);
     $('btnNext').textContent='Nochmal ⏱️';
     $('btnReplay').textContent='Zum Menü';
+  }else if(mode==='daily'){
+    $('winTitle').textContent='Tages-Challenge geschafft! 📅';
+    $('winBest').textContent=fmt(dailyBest);
+    $('btnNext').textContent='Nochmal 📅';
+    $('btnReplay').textContent='Zum Menü';
   }else{
     $('winTitle').textContent=(boss&&boss.dead)?'Boss zerschmettert! 👹💥':'Süß gewonnen! 🎉';
     $('winBest').textContent=fmt(best);
@@ -1253,6 +1318,7 @@ function showWin(){
     $('btnReplay').textContent='Nochmal';
   }
   $('winScore').textContent=fmt(score);
+  $('winCombo').textContent='×'+levelMaxCombo;
   $('recLineWin').classList.toggle('isNew',newRec);
   const stars=score>=goal*2.2?3:score>=goal*1.5?2:1;
   const spans=$('winStars').children;
@@ -1266,6 +1332,7 @@ function showLose(){
   const newRec=finishRun();
   $('loseScore').textContent=fmt(score);
   $('loseBest').textContent=fmt(best);
+  $('loseCombo').textContent='×'+levelMaxCombo;
   $('recLineLose').classList.toggle('isNew',newRec);
   sLose(); $('ovLose').classList.remove('hide');
 }
@@ -1275,7 +1342,7 @@ function spawnGold(){
   const list=[];
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){ const cand=grid[r][c]; if(cand&&!cand.blocker&&!cand.gold) list.push(cand); }
   if(!list.length)return;
-  const cand=list[Math.floor(Math.random()*list.length)];
+  const cand=list[Math.floor(rnd()*list.length)];
   cand.gold=7;
   burst(cand.x,cand.y,'#ffd23f',10);
   floaters.push({x:cand.x,y:cand.y-cell*.6,txt:'✨ Goldenes Bonbon!',t:0,life:1.1,size:16});
@@ -1612,6 +1679,17 @@ function draw(){
     ctx.fillStyle=f.gold?'#ffd23f':'#fff'; ctx.fillText(f.txt,0,0);
     ctx.restore();
   }
+  if(liveCombo>=2&&busy){
+    ctx.save();
+    ctx.translate(sizePx/2,cell*.62);
+    ctx.scale(1+.06*Math.sin(tGlobal*10),1+.06*Math.sin(tGlobal*10));
+    ctx.font=`800 ${Math.round(cell*.55)}px "Baloo 2","Comic Sans MS",sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.lineWidth=6; ctx.strokeStyle='rgba(80,30,18,.9)';
+    ctx.strokeText('🔥 ×'+liveCombo,0,0);
+    ctx.fillStyle=rush?'#ffd23f':'#fff'; ctx.fillText('🔥 ×'+liveCombo,0,0);
+    ctx.restore();
+  }
   if(tool&&mousePos){
     ctx.save(); ctx.translate(mousePos.x,mousePos.y);
     ctx.rotate(Math.sin(tGlobal*7)*.18-.35);
@@ -1646,7 +1724,8 @@ function update(dt){
   let anyFall=false;
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const cand=grid[r][c]; if(!cand||cand.blocker)continue;
-    const tx=c*cell+cell/2, ty=r*cell+cell/2;
+    if(!isFinite(cand.r)||!isFinite(cand.c)){ cand.r=Math.max(0,Math.min(ROWS-1,0)); cand.c=Math.max(0,Math.min(COLS-1,0)); }
+    const tx=cand.c*cell+cell/2, ty=cand.r*cell+cell/2;
     if(cand.tw){
       cand.tw.t+=dt;
       const k=easeOut(Math.min(1,cand.tw.t/cand.tw.dur));
@@ -1661,6 +1740,7 @@ function update(dt){
         if(cand.vy>cell*5){ cand.vy=-cand.vy*.22; cand.squash=1; }
         else { cand.vy=0; cand.falling=false; cand.squash=Math.max(cand.squash,.5); }
       }
+      if(cand.y>ty+cell*3){ cand.y=ty; cand.vy=0; cand.falling=false; }
     }else{
       cand.x+=(tx-cand.x)*Math.min(1,dt*18);
       cand.y+=(ty-cand.y)*Math.min(1,dt*18);
@@ -1669,7 +1749,21 @@ function update(dt){
     if(cand.squash>0)cand.squash=Math.max(0,cand.squash-dt*5);
     if(cand.gold>0)cand.gold=Math.max(0,cand.gold-dt);
   }
+
+  /* Fall-Zwangsbremse: nach 4s Dauerfallen alles ins Ziel setzen */
+  if(anyFall){
+    anyFallT+=dt;
+    if(anyFallT>4){
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+        const cand=grid[r][c];
+        if(cand&&!cand.blocker&&cand.falling){ cand.y=r*cell+cell/2; cand.vy=0; cand.falling=false; }
+      }
+      anyFall=false; anyFallT=0;
+    }
+  }else anyFallT=0;
+
   if(!anyFall&&fallsResolve){ const f=fallsResolve; fallsResolve=null; f(); }
+  if(!busy) liveCombo=0;
 
   if(!busy&&!over&&!anyFall){
     let holes=false;
@@ -1677,10 +1771,11 @@ function update(dt){
     if(holes) collapse();
   }
 
+  /* Watchdog: klemmenden Zug abbrechen (Flow-Token killt Zombie-Kaskaden) */
   if(busy){
-    if(busySince&&tGlobal-busySince>8){
-      busy=false; busySince=0; fallsResolve=null; clearTool(); drag=null;
-      toast('⚠️ Kurzer Hänger – weiter geht’s!');
+    if(busySince&&tGlobal-busySince>6){
+      flowId++; busy=false; busySince=0; fallsResolve=null; clearTool(); drag=null;
+      toast('⚠️ Hänger erkannt – weiter geht’s!');
     }
   }
 
@@ -1713,7 +1808,7 @@ function update(dt){
     hintTimer+=dt;
     if(hintTimer>5&&!hint){ const m=findMove(); if(m)hint={a:m[0],b:m[1],t:0}; }
     goldTimer-=dt;
-    if(goldTimer<=0){ spawnGold(); goldTimer=9+Math.random()*6; }
+    if(goldTimer<=0){ spawnGold(); goldTimer=9+rnd()*6; }
   }
   if(rush){
     rushT-=dt;
@@ -1729,13 +1824,13 @@ function update(dt){
   updateFeverUI();
 }
 
-/* Diagnose-Zeile + fps */
+/* Diagnose-Zeile */
 setInterval(()=>{
   try{
     fpsVal=frames*2; frames=0;
     if(!started)return;
-    const info=mode==='zeit'?('⏱️'+Math.ceil(zeitLeft)):('Zug '+moves);
-    $('dbg').textContent=`${mode==='zeit'?'Zeitjagd':'Level '+level} · ${info} · P:${particles.length} · ${lowFX?'eco':'full'} · ${fpsVal}fps`;
+    const info=mode==='zeit'?('⏱️'+Math.ceil(zeitLeft)):(mode!=='zeit'?('Zug '+moves):'');
+    $('dbg').textContent=`${mode==='zeit'?'Zeitjagd':mode==='daily'?'Daily':'Level '+level} · ${info} · P:${particles.length} · ${lowFX?'eco':'full'} · ${fpsVal}fps`;
   }catch(e){}
 },500);
 
@@ -1798,7 +1893,6 @@ cv.addEventListener('contextmenu',e=>e.preventDefault());
 window.addEventListener('resize',()=>setTimeout(fitBoard,60));
 window.addEventListener('orientationchange',()=>setTimeout(fitBoard,150));
 
-/* Parallax-Hintergrund */
 window.addEventListener('pointermove',e=>{
   try{
     const px=(e.clientX/innerWidth-.5)*18, py=(e.clientY/innerHeight-.5)*18;
@@ -1816,19 +1910,22 @@ function bootGame(){
 }
 $('btnStart').addEventListener('click',()=>{ bootGame(); startLevel(campaignLevel); });
 $('btnZeit').addEventListener('click',()=>{ bootGame(); startZeit(); });
+$('btnDaily').addEventListener('click',()=>{ bootGame(); startDaily(); });
 $('btnNext').addEventListener('click',()=>{
   $('ovWin').classList.add('hide');
-  if(mode==='zeit') startZeit(); else startLevel(level+1);
+  if(mode==='zeit') startZeit();
+  else if(mode==='daily') startDaily();
+  else startLevel(level+1);
 });
 $('btnReplay').addEventListener('click',()=>{
   $('ovWin').classList.add('hide');
-  if(mode==='zeit'){ $('ovStart').classList.remove('hide'); }
-  else startLevel(level);
+  if(mode==='story') startLevel(level);
+  else $('ovStart').classList.remove('hide');
 });
-$('btnRetry').addEventListener('click',()=>{ $('ovLose').classList.add('hide'); startLevel(level); });
+$('btnRetry').addEventListener('click',()=>{ $('ovLose').classList.add('hide'); if(mode==='daily') startDaily(); else startLevel(level); });
 $('btnRestart').addEventListener('click',()=>{
   $('ovWin').classList.add('hide'); $('ovLose').classList.add('hide');
-  if(mode==='zeit') startZeit(); else startLevel(level);
+  if(mode==='zeit') startZeit(); else if(mode==='daily') startDaily(); else startLevel(level);
   toast('Neu gestartet ↻');
 });
 $('btnSound').addEventListener('click',()=>{
