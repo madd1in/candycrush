@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#ff8ab8">
-<title>Bonbon Blitz 🍬 – Match-3 Turbo</title>
+<title>Bonbon Blitz 🍬 – Saga</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍬</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
@@ -206,6 +206,10 @@
   .btn:hover{transform:translateY(-3px);box-shadow:0 10px 0 var(--pinkDark)}
   .btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--pinkDark)}
   .btn.small{font-size:16px;padding:10px 20px}
+  .btn.pulseBtn{animation:btnPulse 1.2s ease-in-out infinite}
+  @keyframes btnPulse{50%{transform:scale(1.06)}}
+  .btn.ghost{background:linear-gradient(180deg,#7cc7ff,var(--blue));border-color:#1f6fbe;box-shadow:0 7px 0 #1f6fbe;font-size:15px;padding:10px 22px}
+  .btn.ghost:hover{box-shadow:0 10px 0 #1f6fbe}.btn.ghost:active{box-shadow:0 2px 0 #1f6fbe}
   .bigStars{font-size:54px;line-height:1;margin:6px 0 10px;display:flex;justify-content:center;gap:6px}
   .bigStars span{color:#e4d6c4;text-shadow:0 3px 0 rgba(87,40,26,.25);transform:scale(.7)}
   .bigStars span.earn{color:var(--yellow);animation:starPop .55s cubic-bezier(.3,2,.5,1) forwards}
@@ -220,6 +224,43 @@
   .conf{position:absolute;top:-14px;border-radius:3px;pointer-events:none;animation:confFall linear forwards}
   @keyframes confFall{to{transform:translateY(112vh) rotate(680deg)}}
   .tinyNote{font-size:11px;font-weight:700;opacity:.6;margin-top:14px}
+
+  /* ===== Levelkarte ===== */
+  #ovMap{padding:0;align-items:stretch;background:rgba(60,18,44,.35)}
+  .mapWrap{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;
+    background:
+      radial-gradient(600px 300px at 90% 0%, rgba(255,255,255,.5), transparent 60%),
+      linear-gradient(180deg,#ffd9e8 0%, #ffe9c7 55%, #cdeeda 100%)}
+  .mapHead{display:flex;align-items:center;gap:8px;padding:10px 12px;
+    background:rgba(255,247,236,.92);border-bottom:3px solid var(--choc);z-index:2}
+  .mapTitle{font-family:'Baloo 2';font-weight:800;font-size:clamp(18px,3.4vmin,26px);flex:1;white-space:nowrap}
+  .mapMeta{font-size:13px;font-weight:800;white-space:nowrap;opacity:.9}
+  .mapScroll{flex:1;overflow-y:auto;position:relative;
+    background-image:radial-gradient(rgba(255,255,255,.5) 2px, transparent 2.6px);
+    background-size:46px 46px}
+  .mapInner{position:relative;width:100%;max-width:600px;margin:0 auto}
+  #mapPath{position:absolute;left:0;top:0;pointer-events:none}
+  .node{position:absolute;width:58px;height:58px;border-radius:50%;border:3px solid var(--choc);
+    background:var(--cream);box-shadow:0 5px 0 rgba(60,26,15,.4);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    font-family:'Baloo 2';font-weight:800;color:var(--choc);cursor:pointer;
+    transform:translate(-50%,-50%);transition:transform .12s;z-index:1}
+  .node:active{transform:translate(-50%,-50%) scale(.92)}
+  .node .nNum{font-size:20px;line-height:1}
+  .node .nStars{font-size:10px;line-height:1;letter-spacing:1px;color:#c9b8a3}
+  .node .nStars b{color:#ffb300;font-weight:800}
+  .node .nBadge{position:absolute;top:-10px;right:-10px;font-size:17px;filter:drop-shadow(0 2px 0 rgba(60,26,15,.3))}
+  .node.jelly{background:#ffd3e6}
+  .node.boss{background:#8a4b2d;color:#fff}
+  .node.boss .nStars{color:#d9b79f}
+  .node.done{background:#eafbe9}
+  .node.lock{filter:grayscale(1);opacity:.55}
+  .node.cur{width:74px;height:74px;background:var(--yellow);animation:curPulse 1s ease-in-out infinite;z-index:2}
+  @keyframes curPulse{50%{transform:translate(-50%,-50%) scale(1.09)}}
+  .node.cur::before{content:'▼';position:absolute;top:-27px;left:50%;transform:translateX(-50%);
+    font-size:20px;color:var(--pinkDark);animation:markBounce .6s ease-in-out infinite alternate}
+  @keyframes markBounce{to{transform:translateX(-50%) translateY(6px)}}
+  .decor{position:absolute;font-size:26px;opacity:.8;pointer-events:none;filter:drop-shadow(0 3px 0 rgba(60,26,15,.2))}
 
   #errBanner{position:fixed;left:50%;bottom:14px;transform:translateX(-50%) translateY(140%);z-index:99;
     background:#d92644;color:#fff;font-weight:800;font-size:13px;padding:10px 18px;border-radius:14px;
@@ -275,7 +316,7 @@
       <div class="fTop"><span class="lbl">Zucker-Rausch</span><span class="rushTag" id="rushTag">×2 PUNKTE!</span></div>
       <div class="feverTrack"><div id="feverFill"></div></div>
     </div>
-    <div class="card recordCard">🏆 Rekord: <b id="bestScore">0</b></div>
+    <div class="card recordCard">🏆 Rekord: <b id="bestScore">0</b> · 🔥 Serie: <b id="streakVal">0</b></div>
     <div class="card legendCard">
       <span class="lbl">So geht’s</span>
       <ul>
@@ -284,9 +325,8 @@
         <li>🌈 <span><b>5er-Reihe</b> → Farb-Bombe</span></li>
         <li>🍮 <span><b>Gerade Levels</b>: Gelee befreien!</span></li>
         <li>👹 <span><b>Jede 5. Stufe</b>: Schoko-Boss!</span></li>
-        <li>📅 <span><b>Tages-Challenge</b>: gleiches Brett, eigener Rekord</span></li>
-        <li>⏱️ <span><b>Zeitjagd</b>: 60 Sek. Punkte-Rekord</span></li>
-        <li>🔨 <span><b>Kombo ≥ 4</b> = Hammer, <b>≥ 5</b> = Rakete 🚀</span></li>
+        <li>🗺️ <span><b>Kampagne</b>: Level für Level, Serie gibt +2 Züge</span></li>
+        <li>🚀 <span><b>Restzüge</b> werden am Ende zu Bonus-Punkten</span></li>
       </ul>
     </div>
   </div>
@@ -304,34 +344,45 @@
 
   <div class="foot">
     <span class="chip">🍭 4er → Streifen</span>
-    <span class="chip">💥 L → Knall</span>
     <span class="chip">🌈 5er → Bombe</span>
     <span class="chip">🍮 Gelee</span>
     <span class="chip">👹 Boss</span>
-    <span class="chip">📅 Daily</span>
-    <span class="chip">⏱️ Zeitjagd</span>
+    <span class="chip">🗺️ Kampagne</span>
+    <span class="chip">🚀 Restzüge = Bonus</span>
   </div>
 </div>
 
-<div id="errBanner"></div>
-<div id="dbg"></div>
+<!-- Levelkarte -->
+<div class="ov hide" id="ovMap">
+  <div class="mapWrap">
+    <div class="mapHead">
+      <button class="iconBtn" id="btnMapBack" title="Menü">←</button>
+      <div class="mapTitle">🍭 Zuckerstraße</div>
+      <div class="mapMeta">⭐ <b id="mapStars">0</b> &nbsp; 🔥 <b id="mapStreak">0</b></div>
+      <button class="iconBtn" id="btnMapZeit" title="Zeitjagd">⏱️</button>
+      <button class="iconBtn" id="btnMapDaily" title="Tages-Challenge">📅</button>
+    </div>
+    <div class="mapScroll" id="mapScroll">
+      <div class="mapInner" id="mapInner"></div>
+    </div>
+  </div>
+</div>
 
-<!-- Start -->
+<!-- Start/Menü -->
 <div class="ov" id="ovStart">
   <div class="ovCard">
     <div class="brand" style="font-size:clamp(32px,8vw,52px)">
       <span>B</span><span>O</span><span>N</span><span>B</span><span>O</span><span>N</span><span class="gap"></span><span>B</span><span>L</span><span>I</span><span>T</span><span>Z</span>
     </div>
-    <p class="tag">Willkommen in der Zuckerwerkstatt! 🍭 Turbo-Edition.</p>
+    <p class="tag">Die zuckersüße Saga – dein Fortschritt wird gespeichert! 💾</p>
     <div class="howto">
-      <span class="chip">👆 Bonbons tauschen</span>
-      <span class="chip">🍭 Spezial-Bonbons bauen</span>
+      <span class="chip">🗺️ Level für Level</span>
+      <span class="chip">⭐ Sterne sammeln</span>
       <span class="chip">🍮 Gelee & 👹 Bosse</span>
-      <span class="chip">🚀 Hammer & Rakete</span>
-      <span class="chip">🌈 Rausch = ×2</span>
+      <span class="chip">🔥 Serie = Bonus-Züge</span>
     </div>
     <div class="btnRow">
-      <button class="btn" id="btnStart">Abenteuer 🍬</button>
+      <button class="btn" id="btnStart">Kampagne 🗺️</button>
       <button class="btn small" id="btnZeit" style="background:linear-gradient(180deg,#7cc7ff,var(--blue));border-color:#1f6fbe;box-shadow:0 7px 0 #1f6fbe">Zeitjagd ⏱️</button>
       <button class="btn small" id="btnDaily" style="background:linear-gradient(180deg,#8ce7bb,#2eb872);border-color:#1d7a50;box-shadow:0 7px 0 #1d7a50">Tages-Challenge 📅</button>
     </div>
@@ -339,22 +390,23 @@
   </div>
 </div>
 
-<!-- Ende -->
+<!-- Sieg -->
 <div class="ov hide" id="ovWin">
   <div class="ovCard sun">
     <h2 class="ovTitle" id="winTitle">Süß gewonnen! 🎉</h2>
     <div class="bigStars" id="winStars"><span>★</span><span>★</span><span>★</span></div>
     <p class="scoreLine">Punkte: <b id="winScore">0</b></p>
+    <p class="scoreLine" id="winBonusLine" style="font-size:14px;display:none">🚀 Zug-Bonus: <b id="winBonus" style="font-size:18px">+0</b></p>
     <p class="scoreLine" style="font-size:14px">🔥 Beste Kombo: <b id="winCombo" style="font-size:18px">×0</b></p>
     <p class="recLine" id="recLineWin">🏆 Rekord: <b id="winBest">0</b> <span class="newRec">NEUER REKORD!</span></p>
     <div class="btnRow">
-      <button class="btn" id="btnNext">Nächstes Level ➜</button>
-      <button class="btn ghost" id="btnReplay">Nochmal</button>
+      <button class="btn" id="btnNext">Weiter ➜</button>
+      <button class="btn ghost" id="btnMapWin">🗺️ Karte</button>
     </div>
   </div>
 </div>
 
-<!-- Verloren -->
+<!-- Niederlage -->
 <div class="ov hide" id="ovLose">
   <div class="ovCard">
     <h2 class="ovTitle">Aufgenascht! 😵</h2>
@@ -362,18 +414,24 @@
     <p class="scoreLine">Punkte: <b id="loseScore">0</b></p>
     <p class="scoreLine" style="font-size:14px">🔥 Beste Kombo: <b id="loseCombo" style="font-size:18px">×0</b></p>
     <p class="recLine" id="recLineLose">🏆 Rekord: <b id="loseBest">0</b> <span class="newRec">NEUER REKORD!</span></p>
-    <button class="btn" id="btnRetry">Nochmal versuchen 🔁</button>
+    <div class="btnRow">
+      <button class="btn" id="btnRetry">Nochmal 🔁</button>
+      <button class="btn ghost" id="btnLoseMap">🗺️ Karte</button>
+    </div>
   </div>
 </div>
+
+<div id="errBanner"></div>
+<div id="dbg"></div>
 
 <script>
 'use strict';
 /* ============================================================
-   BONBON BLITZ v8 TURBO
-   - Komplett synchrone State-Machine: KEIN await, KEIN sleep,
-     KEINE Promises im Spielablauf → kann nicht mehr hängen
-   - Vorgbackene Sprites (Bonbons + Spielfeld) → max. Tempo
-   - Move-Buffering: nächster Zug wird sofort angenommen
+   BONBON BLITZ v9 SAGA
+   - Synchrone State-Machine (kein await im Spielablauf)
+   - Speicherstand (localStorage): Level, Sterne, Rekorde, Serie
+   - Levelkarte "Zuckerstraße" mit Kampagnen-Fortschritt
+   - Action-Flow: Zug-Bonus, Sieg-Serien, Move-Buffering
    ============================================================ */
 
 let errShown=0;
@@ -391,6 +449,21 @@ function showErr(msg){
 }
 window.addEventListener('error',e=>showErr(e.message));
 window.addEventListener('unhandledrejection',e=>showErr(e.reason&&(e.reason.message||e.reason)));
+
+/* ================= Speicherstand ================= */
+let SAVE={cv:1,stars:{},best:0,zeitBest:0,dailyBest:0,muted:false,musicOn:true,streak:0};
+(function loadSave(){
+  try{
+    const raw=localStorage.getItem('bb_save_v1');
+    if(raw){ const s=JSON.parse(raw); if(s&&typeof s==='object') SAVE={...SAVE,...s}; if(!SAVE.stars)SAVE.stars={}; }
+    else{
+      SAVE.best=+(localStorage.getItem('bb_best')||0);
+      SAVE.zeitBest=+(localStorage.getItem('bb_best_zeit')||0);
+      SAVE.dailyBest=+(localStorage.getItem('bb_best_daily')||0);
+    }
+  }catch(e){}
+})();
+function persist(){ try{ localStorage.setItem('bb_save_v1',JSON.stringify(SAVE)); }catch(e){} }
 
 /* ================= Grundlagen ================= */
 const COLS=8, ROWS=8;
@@ -414,18 +487,14 @@ let queuedSwap=null;
 let grid=[], particles=[], floaters=[], waves=[], dying=[];
 let score=0, moves=0, level=1, goal=0, over=false, started=false, goalHit=false;
 let sel=null, hoverCand=null, drag=null, hint=null, hintTimer=0;
-let lastSwap=[], shakeMag=0, tGlobal=0, muted=false;
+let lastSwap=[], shakeMag=0, tGlobal=0, muted=SAVE.muted;
 let fever=0, rush=false, rushT=0, goldTimer=8, tool=null;
 let hammerCharges=1, rocketCharges=0, mousePos=null, star3Done=false;
 let jelly=null, jellyTotal=0;
 let boss=null, bossMusic=false, bossWin=false;
-let mode='story', zeitLeft=60, lastTick=99, campaignLevel=1;
-let best=0, zeitBest=0, dailyBest=0;
-try{
-  best=+(localStorage.getItem('bb_best')||0);
-  zeitBest=+(localStorage.getItem('bb_best_zeit')||0);
-  dailyBest=+(localStorage.getItem('bb_best_daily')||0);
-}catch(e){}
+let mode='story', zeitLeft=60, lastTick=99, campaignLevel=Math.max(1,SAVE.cv);
+let best=SAVE.best, zeitBest=SAVE.zeitBest, dailyBest=SAVE.dailyBest;
+let lastWinBonus=0;
 
 let lowFX=false, frames=0, fpsVal=60, ftAcc=0, ftCnt=0, slowStreak=0;
 let liveCombo=0, levelMaxCombo=0, lastHudKey='';
@@ -435,6 +504,7 @@ let spriteCache=null, bgCanvas=null;
 function dailySeed(){ const d=new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 function rnd(){ return dailyRand?dailyRand():Math.random(); }
+function levelType(lv){ return lv%5===0?'boss':(lv>=2&&lv%2===0?'jelly':'score'); }
 
 const $=id=>document.getElementById(id);
 const k2=(r,c)=>r+','+c;
@@ -505,9 +575,10 @@ const sBossHit=()=>{tone(180,.1,'square',.18,0,-80);noiseBurst(.07,.11,500);};
 const sBossDie=()=>{tone(220,.55,'sawtooth',.25,0,-160);noiseBurst(.5,.3,600);tone(60,.6,'sine',.3);};
 const sRocket=()=>{noiseBurst(.3,.22,2400);tone(300,.3,'sawtooth',.14,0,900);};
 const sTick=()=>tone(880,.05,'square',.12);
+const sBonusTick=()=>tone(1200,.05,'sine',.08);
 
 /* ================= BGM ================= */
-let musicOn=true, mTimer=null, mStep=0, mNext=0, MUSGAIN=null;
+let musicOn=SAVE.musicOn, mTimer=null, mStep=0, mNext=0, MUSGAIN=null;
 const BPM=116, SPS=60/BPM/4;
 const CHORDS=[
   {bass:48,pad:[60,64,67],mel:[76,79,84,88,84,79,76,79]},
@@ -747,7 +818,6 @@ function bossDefeatedSync(){
   bossWin=true;
 }
 
-/* ---------- Räumen (synchron) ---------- */
 function runClearEffects(set,spawnKeys,combo,opts){
   opts=opts||{};
   let n=0,sx=0,sy=0,bonus=0,jellyHits=0,bossDmg=0,sndStripe=false,sndBomb=false;
@@ -860,7 +930,6 @@ function finishChain(){
   }
 }
 
-/* ---------- Züge ---------- */
 function setSwapTweens(a,b){
   a.tw={t:0,dur:.14,x0:a.x,y0:a.y,x1:b.x,y1:b.y};
   b.tw={t:0,dur:.14,x0:b.x,y0:b.y,x1:a.x,y1:a.y};
@@ -910,7 +979,6 @@ function resolveAfterSwap(){
   }
   const groups=findMatches();
   if(groups.length){ setupClear(groups,1); return; }
-  // ungültig: zurücktauschen
   sBad();
   swapCells(a,b);
   setSwapTweens(a,b);
@@ -948,9 +1016,22 @@ function jellyRemaining(){
 }
 function checkObjectives(){
   if(over)return true;
-  if(bossWin){ over=true; setTimeout(showWin,700); return true; }
-  if(jelly&&jellyRemaining()<=0){ over=true; setTimeout(showWin,550); return true; }
+  if(bossWin){ triggerWin(); return true; }
+  if(jelly&&jellyRemaining()<=0){ triggerWin(); return true; }
   return false;
+}
+function triggerWin(){
+  if(over)return;
+  over=true;
+  lastWinBonus=0;
+  if(mode!=='zeit'&&moves>0){
+    lastWinBonus=moves*60;
+    score+=lastWinBonus;
+    floaters.push({x:sizePx/2,y:sizePx/2,txt:'🚀 ZUG-BONUS +'+fmt(lastWinBonus),t:0,life:1.4,size:26,gold:true});
+    for(let i=0;i<6;i++) tone(700+i*120,.07,'sine',.09,i*.06);
+    updateHUD();
+  }
+  setTimeout(showWin,900);
 }
 function afterMove(){
   if(over)return;
@@ -959,7 +1040,11 @@ function afterMove(){
   if(mode!=='zeit'&&moves<=0){
     over=true;
     const won=!boss&&!jelly&&score>=goal;
-    setTimeout(()=>{ won?showWin():showLose(); },550);
+    if(won) triggerWin();
+    else{
+      SAVE.streak=0; persist();
+      setTimeout(showLose,550);
+    }
     return;
   }
   if(!findMove()) shuffleBoard();
@@ -1189,12 +1274,12 @@ function startLevel(lv){
     level=lv; campaignLevel=lv; TYPES=lv>=3?6:5;
     goal=1800+(lv-1)*1400;
     moves=22;
-    const isBoss=lv%5===0;
-    bossMusic=isBoss;
-    if(isBoss){
+    const lt=levelType(lv);
+    bossMusic=lt==='boss';
+    if(lt==='boss'){
       boss={hp:8+lv*2,maxHp:8+lv*2,r:ROWS-1,c:3,hurt:0,dead:false,phase:rnd()*6,spawn:1};
       goal=Math.round(goal*.8);
-    }else if(lv>=2&&lv%2===0){
+    }else if(lt==='jelly'){
       jelly=Array.from({length:ROWS},()=>Array(COLS).fill(0));
       const K=Math.min(24,8+lv*2);
       let placed=0,guard=0;
@@ -1207,17 +1292,23 @@ function startLevel(lv){
       jellyTotal=jellyRemaining();
       goal=Math.round(goal*.6);
     }
+    if(SAVE.streak>=2){
+      moves+=2;
+      if(started) toast(`🔥 Serie ×${SAVE.streak} → +2 Züge!`);
+    }
     $('lvl').textContent=lv;
     $('bestScore').textContent=fmt(best);
+    $('streakVal').textContent=SAVE.streak;
     updateToolUI();
     fillBoard();
     placeBossBlocker();
     fitBoard(); cascadeIn(); updateHUD();
     if(started){
-      banner(isBoss?'BOSS-LEVEL!':'LEVEL '+lv,true);
+      const icon=lt==='boss'?' 👹':lt==='jelly'?' 🍮':' 🎯';
+      banner('LEVEL '+lv+icon,true);
       tone(660,.13,'triangle',.17); tone(880,.18,'triangle',.17,.09);
-      if(jelly) toast('🍮 Befrei alle Gelee-Felder!');
-      if(isBoss) toast('👹 Besiege den Schoko-Boss!');
+      if(lt==='jelly') toast('🍮 Befrei alle Gelee-Felder!');
+      if(lt==='boss') toast('👹 Besiege den Schoko-Boss!');
     }
   }catch(err){ showErr('Levelstart: '+err.message); }
 }
@@ -1258,38 +1349,40 @@ function startDaily(){
 }
 function finishRun(){
   let newRec=false;
-  if(mode==='zeit'){
-    if(score>zeitBest){ zeitBest=score; newRec=true; try{localStorage.setItem('bb_best_zeit',String(zeitBest));}catch(e){} }
-  }else if(mode==='daily'){
-    if(score>dailyBest){ dailyBest=score; newRec=true; try{localStorage.setItem('bb_best_daily',String(dailyBest));}catch(e){} }
-  }else{
-    if(score>best){ best=score; newRec=true; try{localStorage.setItem('bb_best',String(best));}catch(e){} }
-    $('bestScore').textContent=fmt(best);
-  }
+  if(mode==='zeit'){ if(score>zeitBest){ zeitBest=score; SAVE.zeitBest=zeitBest; newRec=true; } }
+  else if(mode==='daily'){ if(score>dailyBest){ dailyBest=score; SAVE.dailyBest=dailyBest; newRec=true; } }
+  else{ if(score>best){ best=score; SAVE.best=best; newRec=true; } }
+  persist();
   return newRec;
 }
 function showWin(){
   const newRec=finishRun();
+  let stars=score>=goal*2.2?3:score>=goal*1.5?2:1;
+  if(mode!=='zeit'&&mode!=='daily'){
+    SAVE.streak=(SAVE.streak||0)+1;
+    SAVE.stars[level]=Math.max(SAVE.stars[level]||0,stars);
+    SAVE.cv=Math.max(SAVE.cv,level+1);
+    persist();
+  }
   if(mode==='zeit'){
     $('winTitle').textContent='Zeit um! ⏱️';
     $('winBest').textContent=fmt(zeitBest);
     $('btnNext').textContent='Nochmal ⏱️';
-    $('btnReplay').textContent='Zum Menü';
   }else if(mode==='daily'){
     $('winTitle').textContent='Tages-Challenge geschafft! 📅';
     $('winBest').textContent=fmt(dailyBest);
     $('btnNext').textContent='Nochmal 📅';
-    $('btnReplay').textContent='Zum Menü';
   }else{
     $('winTitle').textContent=(boss&&boss.dead)?'Boss zerschmettert! 👹💥':'Süß gewonnen! 🎉';
     $('winBest').textContent=fmt(best);
-    $('btnNext').textContent='Nächstes Level ➜';
-    $('btnReplay').textContent='Nochmal';
+    $('btnNext').textContent='Weiter ➜';
   }
+  $('btnNext').classList.add('pulseBtn');
   $('winScore').textContent=fmt(score);
   $('winCombo').textContent='×'+levelMaxCombo;
+  if(lastWinBonus>0){ $('winBonusLine').style.display='block'; $('winBonus').textContent='+'+fmt(lastWinBonus); }
+  else $('winBonusLine').style.display='none';
   $('recLineWin').classList.toggle('isNew',newRec);
-  const stars=score>=goal*2.2?3:score>=goal*1.5?2:1;
   const spans=$('winStars').children;
   [...spans].forEach(s=>s.classList.remove('earn'));
   for(let i=0;i<stars;i++) setTimeout(()=>{ spans[i].classList.add('earn'); tone(700+i*220,.18,'triangle',.17); },350+i*380);
@@ -1314,6 +1407,90 @@ function spawnGold(){
   burst(cand.x,cand.y,'#ffd23f',8);
   floaters.push({x:cand.x,y:cand.y-cell*.6,txt:'✨ Goldenes Bonbon!',t:0,life:1,size:15});
   sGold();
+}
+
+/* ================= Levelkarte ================= */
+function openMap(){
+  $('ovStart').classList.add('hide');
+  $('ovWin').classList.add('hide');
+  $('ovLose').classList.add('hide');
+  buildMap();
+  $('ovMap').classList.remove('hide');
+}
+function buildMap(){
+  try{
+    const inner=$('mapInner');
+    inner.innerHTML='';
+    const maxShow=SAVE.cv+4;
+    const SP=104;
+    const H=maxShow*SP+150;
+    inner.style.height=H+'px';
+    const W=inner.clientWidth||Math.min(innerWidth,600);
+    const pts=[];
+    for(let lv=1;lv<=maxShow;lv++){
+      const xPct=50+Math.sin(lv*1.05)*24;
+      const y=H-80-(lv-1)*SP;
+      pts.push({x:xPct/100*W,y,lv});
+    }
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('id','mapPath');
+    svg.setAttribute('width',W); svg.setAttribute('height',H);
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    let d='M '+pts[0].x+' '+pts[0].y;
+    for(let i=1;i<pts.length;i++) d+=' L '+pts[i].x+' '+pts[i].y;
+    const p1=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p1.setAttribute('d',d); p1.setAttribute('stroke','#57281a'); p1.setAttribute('stroke-width','13');
+    p1.setAttribute('fill','none'); p1.setAttribute('stroke-linecap','round'); p1.setAttribute('stroke-linejoin','round');
+    p1.setAttribute('opacity','.35');
+    const p2=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p2.setAttribute('d',d); p2.setAttribute('stroke','#fff7ec'); p2.setAttribute('stroke-width','7');
+    p2.setAttribute('fill','none'); p2.setAttribute('stroke-linecap','round'); p2.setAttribute('stroke-linejoin','round');
+    p2.setAttribute('stroke-dasharray','1 14');
+    svg.appendChild(p1); svg.appendChild(p2);
+    inner.appendChild(svg);
+    // Deko
+    const DEC=['🍭','🍬','🍩','🧁','🍫','🍪'];
+    for(let lv=1;lv<=maxShow;lv++){
+      if(lv%3!==0)continue;
+      const p=pts[lv-1];
+      const s=document.createElement('span');
+      s.className='decor'; s.textContent=DEC[lv%DEC.length];
+      s.style.left=(p.x+(lv%2?70:-90))+'px';
+      s.style.top=(p.y-14)+'px';
+      inner.appendChild(s);
+    }
+    // Knoten
+    for(let lv=1;lv<=maxShow;lv++){
+      const p=pts[lv-1];
+      const lt=levelType(lv);
+      const unlocked=lv<=SAVE.cv;
+      const doneStars=SAVE.stars[lv]||0;
+      const b=document.createElement('button');
+      b.className='node '+lt+(unlocked?'':' lock')+(doneStars>0?' done':'')+(lv===SAVE.cv?' cur':'');
+      b.style.left=p.x+'px'; b.style.top=p.y+'px';
+      if(unlocked){
+        b.innerHTML=`<span class="nNum">${lv}</span><span class="nStars">${'<b>★</b>'.repeat(doneStars)}${'☆'.repeat(3-doneStars)}</span>`;
+      }else{
+        b.innerHTML=`<span class="nNum">🔒</span>`;
+      }
+      if(lt==='boss') b.innerHTML+='<span class="nBadge">👹</span>';
+      else if(lt==='jelly') b.innerHTML+='<span class="nBadge">🍮</span>';
+      b.addEventListener('click',()=>{
+        ac();
+        if(unlocked){ $('ovMap').classList.add('hide'); startLevel(lv); sSelect(); }
+        else{ toast('🔒 Erst Level '+(lv-1)+' schaffen!'); sBad(); }
+      });
+      inner.appendChild(b);
+    }
+    // Kopf-Infos
+    let total=0; for(const k in SAVE.stars) total+=SAVE.stars[k];
+    $('mapStars').textContent=total;
+    $('mapStreak').textContent=SAVE.streak||0;
+    // Scroll zum aktuellen Level
+    const cur=pts[Math.min(SAVE.cv,maxShow)-1];
+    const sc=$('mapScroll');
+    setTimeout(()=>{ sc.scrollTop=Math.max(0,cur.y-sc.clientHeight*.45); },30);
+  }catch(e){ showErr('Karte: '+e.message); }
 }
 
 /* ================= Sprites & Board ================= */
@@ -1402,7 +1579,6 @@ function drawCandyBody(g,type,special,s){
   }
   g.fillStyle='rgba(255,255,255,.8)';
   g.beginPath(); g.ellipse(-s*.3,-s*.42,s*.33,s*.19,-.6,0,7); g.fill();
-  // statisches freundliches Gesicht
   for(const side of [-1,1]){
     const x=side*s*.3;
     g.fillStyle='#fff';
@@ -1722,7 +1898,6 @@ function frame(now){
 function update(dt){
   stT+=dt;
 
-  /* Zucker-Animationen */
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const cand=grid[r][c]; if(!cand||cand.blocker)continue;
     const tx=c*cell+cell/2, ty=r*cell+cell/2;
@@ -1749,7 +1924,6 @@ function update(dt){
     if(cand.gold>0)cand.gold=Math.max(0,cand.gold-dt);
   }
 
-  /* State-Machine */
   if(st==='swapping'&&stT>=.15){
     const a=pendingSwap.a,b=pendingSwap.b;
     swapCells(a,b);
@@ -1776,7 +1950,6 @@ function update(dt){
       }
     }
   }
-  /* Sicherheitsnetz: jede Phase endet garantiert */
   if(st!=='idle'&&stT>8){
     forceSettle(); applyTransforms(); collapse();
     st='idle'; stT=0;
@@ -1828,7 +2001,6 @@ function update(dt){
   updateFeverUI();
 }
 
-/* Diagnose */
 setInterval(()=>{
   try{
     fpsVal=frames*2; frames=0;
@@ -1911,41 +2083,42 @@ window.addEventListener('pointermove',e=>{
 },{passive:true});
 
 /* ================= Buttons & Start ================= */
-$('btnFS').addEventListener('click',()=>{ ac(); toggleFS(); });
 function bootGame(){
+  if(started)return;
   started=true; ac();
-  $('ovStart').classList.add('hide');
   enterFS();
   startMusic(); sPop(1);
 }
-$('btnStart').addEventListener('click',()=>{ bootGame(); startLevel(campaignLevel); });
-$('btnZeit').addEventListener('click',()=>{ bootGame(); startZeit(); });
-$('btnDaily').addEventListener('click',()=>{ bootGame(); startDaily(); });
+$('btnStart').addEventListener('click',()=>{ bootGame(); $('ovStart').classList.add('hide'); openMap(); });
+$('btnZeit').addEventListener('click',()=>{ bootGame(); $('ovStart').classList.add('hide'); startZeit(); });
+$('btnDaily').addEventListener('click',()=>{ bootGame(); $('ovStart').classList.add('hide'); startDaily(); });
+
+$('btnMapBack').addEventListener('click',()=>{ $('ovMap').classList.add('hide'); $('ovStart').classList.remove('hide'); });
+$('btnMapZeit').addEventListener('click',()=>{ ac(); $('ovMap').classList.add('hide'); startZeit(); });
+$('btnMapDaily').addEventListener('click',()=>{ ac(); $('ovMap').classList.add('hide'); startDaily(); });
+
 $('btnNext').addEventListener('click',()=>{
-  $('ovWin').classList.add('hide');
+  $('ovWin').classList.add('hide'); $('btnNext').classList.remove('pulseBtn');
   if(mode==='zeit') startZeit();
   else if(mode==='daily') startDaily();
   else startLevel(level+1);
 });
-$('btnReplay').addEventListener('click',()=>{
-  $('ovWin').classList.add('hide');
-  if(mode==='story') startLevel(level);
-  else $('ovStart').classList.remove('hide');
-});
+$('btnMapWin').addEventListener('click',()=>{ $('ovWin').classList.add('hide'); openMap(); });
 $('btnRetry').addEventListener('click',()=>{ $('ovLose').classList.add('hide'); if(mode==='daily') startDaily(); else startLevel(level); });
+$('btnLoseMap').addEventListener('click',()=>{ $('ovLose').classList.add('hide'); openMap(); });
 $('btnRestart').addEventListener('click',()=>{
-  $('ovWin').classList.add('hide'); $('ovLose').classList.add('hide');
+  $('ovWin').classList.add('hide'); $('ovLose').classList.add('hide'); $('ovMap').classList.add('hide');
   if(mode==='zeit') startZeit(); else if(mode==='daily') startDaily(); else startLevel(level);
   toast('Neu gestartet ↻');
 });
 $('btnSound').addEventListener('click',()=>{
-  muted=!muted;
+  muted=!muted; SAVE.muted=muted; persist();
   $('btnSound').textContent=muted?'🔇':'🔊';
   $('btnSound').classList.toggle('off',muted);
   if(!muted){ ac(); sSelect(); }
 });
 $('btnMusic').addEventListener('click',()=>{
-  musicOn=!musicOn;
+  musicOn=!musicOn; SAVE.musicOn=musicOn; persist();
   $('btnMusic').classList.toggle('off',!musicOn);
   if(musicOn){ ac(); startMusic(); } else stopMusic();
 });
@@ -1960,8 +2133,12 @@ $('rocketBtn').addEventListener('click',()=>{
   setTool('rocket');
 });
 
+/* ================= Boot ================= */
 try{
-  startLevel(1);
+  $('btnSound').textContent=muted?'🔇':'🔊';
+  $('btnSound').classList.toggle('off',muted);
+  $('btnMusic').classList.toggle('off',!musicOn);
+  startLevel(campaignLevel);
   requestAnimationFrame(()=>{ fitBoard(); requestAnimationFrame(frame); });
 }catch(err){ showErr('Start: '+err.message); }
 </script>
