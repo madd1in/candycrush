@@ -227,7 +227,6 @@
   @keyframes confFall{to{transform:translateY(112vh) rotate(680deg)}}
   .tinyNote{font-size:11px;font-weight:700;opacity:.6;margin-top:14px}
 
-  /* ===== Levelkarte ===== */
   #ovMap{padding:0;align-items:stretch;background:rgba(60,18,44,.35)}
   .mapWrap{display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;
     background:
@@ -330,9 +329,10 @@
         <li>🍭 <span><b>4er-Reihe</b> → Streifen-Bonbon</span></li>
         <li>💥 <span><b>L-/T-Form</b> → Knall-Bonbon (3×3)</span></li>
         <li>🌈 <span><b>5er-Reihe</b> → Farb-Bombe</span></li>
-        <li>⭐ <span><b>3. Stern</b> → Kettenreaktion + Zug-Bonus + Feuerwerk!</span></li>
-        <li>🎯 <span><b>Perfekt-Sieg</b>: 10+ Restzüge = +1.000 Punkte</span></li>
-        <li>🎲 <span><b>Varianten</b>: 🏃 Sprint · 🐘 Marathon · 💛 Goldrausch · 🧰 Kiste · 🔥 Fieber · 💢 Mega-Boss</span></li>
+        <li>⭐ <span><b>3. Stern</b> → Kettenreaktion + Feuerwerk!</span></li>
+        <li>👹 <span><b>Boss</b>: daneben räumen = 2 Schaden, Hammer = 6!</span></li>
+        <li>🎯 <span><b>Perfekt-Sieg</b>: 10+ Restzüge = +1.000</span></li>
+        <li>🎲 <span><b>Varianten</b>: 🏃 🐘 💛 🧰 🔥 💢</span></li>
       </ul>
     </div>
   </div>
@@ -350,8 +350,8 @@
 
   <div class="foot">
     <span class="chip">⭐ 3. Stern = Kettenreaktion</span>
+    <span class="chip">👹 Hammer haut Boss −6</span>
     <span class="chip">🎯 10+ Restzüge = +1.000</span>
-    <span class="chip">🎆 Feuerwerk zum Sieg</span>
     <span class="chip">🎲 Jedes Level anders</span>
   </div>
 </div>
@@ -381,10 +381,10 @@
     <p class="tag">Gewinne mit 3 Sternen → Kettenreaktion & großes Feuerwerk! 🎆</p>
     <div class="howto">
       <span class="chip">⭐ 3. Stern = Kettenreaktion</span>
+      <span class="chip">👹 Hammer haut den Boss −6</span>
       <span class="chip">🎯 Perfekt-Sieg = +1.000</span>
       <span class="chip">🎲 Level-Varianten</span>
-      <span class="chip">🗺️ 4 Zonen</span>
-      <span class="chip">🔥 Serie = Bonus-Züge</span>
+      <span class="chip">🌈 4 Zonen mit eigenem Wetter</span>
     </div>
     <div class="btnRow">
       <button class="btn" id="btnStart">Kampagne 🗺️</button>
@@ -433,13 +433,17 @@
 <script>
 'use strict';
 /* ============================================================
-   BONBON BLITZ v13 – Feuerwerk & Mega-Juice
-   - 🎆 Feuerwerk-Show vor dem Sieg-Screen (Raketen, Glüh-Funken)
-   - 🎯 Perfekt-Sieg-Bonus (10+ Restzüge → +1.000)
-   - 🌈 Regenbogen-Sweep + Schimmer im Rausch
-   - 💫 Zoom-Pulse, Funken-Schweife beim Tauschen, Bonbon-Glimmern
-   - Weiterhin: 3-Sterne-Kettenreaktion, Level-Varianten, Zonen,
-     Bosse, Gelee, Serie, Erfolge, Speicherstand, State-Machine
+   BONBON BLITZ v14
+   FIX: Boss-Blocker hatte keine Koordinaten → das 3-Sterne-
+        Finale konnte ihn nie entfernen und hing ewig (Level 5).
+        Jetzt: Blocker mit Koordinaten + knallharter Finale-
+        Failsafe (räumt notfalls das ganze Brett selbst).
+   NEU: Boss-Nerf (weniger HP, mehr Schaden, Hammer −6),
+        melodischere BGM (16-Takte-Zyklus, 2. Strophe, Arpeggio,
+        Fills, Oktav-Variation, Glitzer-Chimes),
+        Zonen-Wetter (Blüten/Glut/Schnee/Glühwürmchen),
+        Boss-Brüllen, Speed-Linien im Rausch, Gefahren-Vignette,
+        Bonbon-Wackeln, Kombo-Feuerwerk.
    ============================================================ */
 
 let errShown=0;
@@ -458,7 +462,6 @@ function showErr(msg){
 window.addEventListener('error',e=>showErr(e.message));
 window.addEventListener('unhandledrejection',e=>showErr(e.reason&&(e.reason.message||e.reason)));
 
-/* ================= Speicherstand ================= */
 let SAVE={cv:1,stars:{},best:0,zeitBest:0,dailyBest:0,muted:false,musicOn:true,streak:0,ach:{},lastReward:'',pendingGift:false};
 (function loadSave(){
   try{
@@ -473,7 +476,6 @@ let SAVE={cv:1,stars:{},best:0,zeitBest:0,dailyBest:0,muted:false,musicOn:true,s
 })();
 function persist(){ try{ localStorage.setItem('bb_save_v1',JSON.stringify(SAVE)); }catch(e){} }
 
-/* ================= Erfolge ================= */
 const ACHS={
   first_win:'🏅 Erster Sieg',
   boss_slayer:'👹 Boss-Bezwinger',
@@ -513,7 +515,6 @@ function applyGift(){
   sGold();
 }
 
-/* ================= Zonen & Varianten ================= */
 const ZONES=[
   {name:'Zuckerwiesen',icon:'🌸',sky:['#ffd9e8','#ffe9c7','#cdeeda'],cellA:'#ffe4ef',cellB:'#ffd3e6',frame:'#5c2e1d'},
   {name:'Schoko-Schlucht',icon:'🍫',sky:['#e8c39a','#c68d5f','#8a5a3b'],cellA:'#f3ddc8',cellB:'#e7c9ab',frame:'#3f2314'},
@@ -545,7 +546,6 @@ function modLabel(m){
   return parts;
 }
 
-/* ================= Grundlagen ================= */
 const COLS=8, ROWS=8;
 let TYPES=5;
 const COLORS=[
@@ -561,11 +561,10 @@ let sizePx=480, cell=60, dpr=1;
 
 let st='idle', stT=0;
 let pendingSwap=null, pendingTransforms=[], comboCount=0, turnMaxCombo=0;
-
 let starFinish=false, finPhase=0, finT=0, finPopT=0, finPopped=0, winPending=false;
 
-let grid=[], particles=[], floaters=[], waves=[], dying=[], beams=[];
-let fwRockets=[], fwSparks=[], celebT=0, celebLaunch=0, sweepT=0, lastPerfect=false;
+let grid=[], particles=[], floaters=[], waves=[], dying=[], beams=[], ambients=[];
+let fwRockets=[], fwSparks=[], celebT=0, celebLaunch=0, sweepT=0, lastPerfect=false, ambientT=0;
 
 let score=0, moves=0, level=1, goal=0, over=false, started=false, goalHit=false;
 let sel=null, hoverCand=null, drag=null, hint=null, hintTimer=0;
@@ -663,10 +662,10 @@ const sTick=()=>tone(880,.05,'square',.12);
 const sFanfare=()=>{tone(523,.15,'triangle',.18);tone(659,.15,'triangle',.18,.1);tone(784,.2,'triangle',.18,.2);tone(1046,.3,'triangle',.2,.3);};
 const sPerfect=()=>{tone(1046,.2,'triangle',.2);tone(1318,.2,'triangle',.2,.1);tone(1568,.3,'triangle',.22,.2);};
 
-/* ================= BGM ================= */
+/* ================= BGM (16-Takte-Zyklus) ================= */
 let musicOn=SAVE.musicOn, mTimer=null, mStep=0, mNext=0, MUSGAIN=null;
 const BPM=116, SPS=60/BPM/4;
-const CHORDS=[
+const CHORDS_A=[
   {bass:48,pad:[60,64,67],mel:[76,79,84,88,84,79,76,79]},
   {bass:45,pad:[57,60,64],mel:[81,84,88,84,81,79,76,74]},
   {bass:41,pad:[53,57,60],mel:[76,81,84,81,88,84,81,79]},
@@ -675,6 +674,16 @@ const CHORDS=[
   {bass:45,pad:[57,60,64],mel:[81,79,76,74,76,79,81,84]},
   {bass:41,pad:[53,57,60],mel:[84,81,76,81,84,88,84,81]},
   {bass:43,pad:[55,59,62],mel:[74,79,83,86,83,79,74,71]}
+];
+const CHORDS_B=[
+  {bass:45,pad:[57,60,64],mel:[81,79,76,72,76,79,81,84]},
+  {bass:41,pad:[53,57,60],mel:[77,81,84,81,77,81,84,88]},
+  {bass:48,pad:[60,64,67],mel:[84,83,79,76,79,83,84,88]},
+  {bass:43,pad:[55,59,62],mel:[86,83,79,83,86,83,79,74]},
+  {bass:45,pad:[57,60,64],mel:[84,81,79,81,84,81,79,76]},
+  {bass:41,pad:[53,57,60],mel:[88,84,81,84,88,84,81,77]},
+  {bass:48,pad:[60,64,67],mel:[88,84,83,84,88,84,83,79]},
+  {bass:43,pad:[55,59,62],mel:[86,83,79,83,86,88,86,83]}
 ];
 const CHORDS_BOSS=[
   {bass:45,pad:[57,60,64],mel:[81,79,76,79,84,81,79,76]},
@@ -706,37 +715,53 @@ function mKick(t){
   }catch(e){}
 }
 function playStep(step,t){
-  const bar=Math.floor(step/16)%8, s=step%16;
-  const ch=(bossMusic?CHORDS_BOSS:CHORDS)[bar];
-  if(s%2===0){ const m=ch.mel[s/2];
-    mNote(t,mtof(m),.24,'triangle',.05);
-    mNote(t,mtof(m)*2,.16,'sine',.015);
-  }
-  if(s===0) ch.pad.forEach(n=>mNote(t,mtof(n),SPS*15.5,'sine',.02));
-  if(s===0||s===8) mNote(t,mtof(ch.bass),.32,'sine',.11);
-  if(s===3||s===11) mNote(t,mtof(ch.bass),.15,'sine',.07);
-  if(s===6) mNote(t,mtof(ch.bass+7),.15,'sine',.07);
-  if(s===14) mNote(t,mtof(ch.bass+12),.15,'sine',.055);
-  if(s===0||s===8) mKick(t);
-  if(s===4||s===12){ mNoise(t,.09,.05,2600); mNote(t,190,.06,'triangle',.04); }
-  if(s%2===0) mNoise(t,.03,s%4===2?.024:.016,9000);
-  if(rush){
-    const arp=[0,7,12,16];
-    mNote(t,mtof(ch.bass+24+arp[s%4]),.09,'square',.02);
-    if(s%2===1) mNoise(t,.02,.015,9000);
-  }
-  if(bar===7&&s>=12) mNoise(t,.05,.02+(s-12)*.012,3200);
-  if(step%128===120){
-    mNote(t,1760,.12,'sine',.03);
-    mNote(t+.07,2093,.12,'sine',.03);
-    mNote(t+.14,2637,.18,'sine',.03);
-  }
+  try{
+    const s=step%16;
+    let ch, bar16;
+    if(bossMusic){ ch=CHORDS_BOSS[Math.floor(step/16)%8]; bar16=Math.floor(step/16)%8; }
+    else{
+      bar16=Math.floor(step/16)%16;
+      ch=bar16<8?CHORDS_A[bar16]:CHORDS_B[bar16-8];
+    }
+    const oct=(!bossMusic&&(Math.floor(step/256)%2)===1)?12:0;
+    if(s%2===0){ const m=ch.mel[s/2]+oct;
+      mNote(t,mtof(m),.24,'triangle',.05);
+      mNote(t,mtof(m)*2,.16,'sine',.014);
+    }
+    if(!bossMusic){
+      const an=ch.pad[s%3]+12+(s%4===0?12:0);
+      mNote(t,mtof(an),.12,'triangle',.015);
+    }
+    if(s===0) ch.pad.forEach(n=>mNote(t,mtof(n),SPS*15.5,'sine',.02));
+    if(s===0||s===8) mNote(t,mtof(ch.bass),.32,'sine',.11);
+    if(s===3||s===11) mNote(t,mtof(ch.bass),.15,'sine',.07);
+    if(s===6) mNote(t,mtof(ch.bass+7),.15,'sine',.07);
+    if(s===14) mNote(t,mtof(ch.bass+12),.15,'sine',.055);
+    if(s===0||s===8) mKick(t);
+    if(!bossMusic&&bar16>=8&&s===10) mKick(t);
+    if(s===4||s===12){ mNoise(t,.09,.05,2600); mNote(t,190,.06,'triangle',.04); }
+    if(s%2===0) mNoise(t,.03,s%4===2?.024:.016,9000);
+    if(!bossMusic&&bar16>=8&&s%4===2) mNoise(t,.04,.02,7000);
+    if(!bossMusic&&bar16%4===3&&s>=12){
+      const run=[0,4,7,12][s-12];
+      mNote(t,mtof(ch.pad[0]+12+run),.12,'triangle',.06);
+    }
+    if(!bossMusic&&s%4===2&&Math.random()<.06){
+      const P=[84,86,88,91,93];
+      mNote(t,mtof(P[Math.floor(Math.random()*P.length)]+12),.25,'sine',.02);
+    }
+    if(rush){
+      const arp=[0,7,12,16];
+      mNote(t,mtof(ch.bass+24+arp[s%4]),.09,'square',.02);
+      if(s%2===1) mNoise(t,.02,.015,9000);
+    }
+  }catch(e){}
 }
 function scheduleMusic(){
   try{
     if(!AC)return;
     let guard=0;
-    while(mNext < AC.currentTime + .12 && guard++<64){ playStep(mStep%128,mNext); mNext+=SPS; mStep++; }
+    while(mNext < AC.currentTime + .12 && guard++<64){ playStep(mStep,mNext); mNext+=SPS; mStep++; }
   }catch(e){}
 }
 function startMusic(){ if(!musicOn||mTimer)return; ac(); if(!AC)return; mNext=AC.currentTime+.06; mTimer=setInterval(scheduleMusic,30); }
@@ -776,7 +801,8 @@ function fillBoard(){
     }}
   if(!findMove()){ fillBoard(); return; }
 }
-function placeBossBlocker(){ if(boss&&!boss.dead&&grid[boss.r]) grid[boss.r][boss.c]={blocker:true}; }
+/* FIX: Blocker bekommt echte Koordinaten */
+function placeBossBlocker(){ if(boss&&!boss.dead&&grid[boss.r]) grid[boss.r][boss.c]={blocker:true,r:boss.r,c:boss.c}; }
 function swapGrid(r1,c1,r2,c2){
   const a=grid[r1][c1],b=grid[r2][c2];
   grid[r1][c1]=b;grid[r2][c2]=a;
@@ -922,13 +948,17 @@ function runClearEffects(set,spawnKeys,combo,opts){
     if(!inb(r,c))return;
     const cand=grid[r][c];
     if(!cand||cand.dead)return;
-    if(cand.blocker){ bossDmg+=3; return; }
+    if(cand.blocker){ bossDmg+=5; return; }
     cand.dead=true; grid[r][c]=null;
     dying.push({cand,t:0});
     burst(cand.x,cand.y,(cand.type>=0&&COLORS[cand.type])?COLORS[cand.type].base:'#fff',cand.special?12:6);
     if(cand.gold>0){ bonus+=500; burst(cand.x,cand.y,'#ffd23f',14); sGold(); unlockAch('gold'); }
     if(jelly&&jelly[r][c]>0){ jelly[r][c]--; jellyHits++; burst(cand.x,cand.y,'#ff7aa2',6); }
-    if(boss&&!boss.dead&&Math.abs(r-boss.r)+Math.abs(c-boss.c)===1) bossDmg++;
+    if(boss&&!boss.dead){
+      const dMan=Math.abs(r-boss.r)+Math.abs(c-boss.c);
+      if(dMan===1) bossDmg+=2;
+      else if((r===boss.r||c===boss.c)&&dMan<=3) bossDmg+=1;
+    }
     if(cand.special==='stripeH'){ sndStripe=true; beams.push({orient:'h',idx:r,t:0}); waves.push({x:cand.x,y:cand.y,t:0,life:.4,max:cell*4.5}); }
     else if(cand.special==='stripeV'){ sndStripe=true; beams.push({orient:'v',idx:c,t:0}); waves.push({x:cand.x,y:cand.y,t:0,life:.4,max:cell*4.5}); }
     else if(cand.special==='wrapped'){ sndStripe=true; waves.push({x:cand.x,y:cand.y,t:0,life:.45,max:cell*2.6}); shake(6); vib(25); }
@@ -940,6 +970,7 @@ function runClearEffects(set,spawnKeys,combo,opts){
   else if(sndStripe) sStripe();
   if(jellyHits) sJelly();
   if(n&&combo>=3) heartBurst(sx/n,sy/n,Math.min(6,2+combo));
+  if(n&&combo>=4&&sx) explodeFirework({x:sx/n,y:sy/n,color:COLORS[Math.floor(rnd()*COLORS.length)].base});
   if(n&&combo>=5&&!lowFX) candyRain();
   if(n){
     const gained=n*60*combo*(rush?2:1)+bonus+jellyHits*120;
@@ -1084,6 +1115,19 @@ function resolveAfterSwap(){
 }
 function hammerStart(cand){
   if(st!=='idle'||over||starFinish||hammerCharges<=0)return;
+  if(cand.blocker&&boss&&!boss.dead){
+    clearTool();
+    hammerCharges--; updateToolUI();
+    boss.hp-=6; boss.hurt=1;
+    sBossHit(); shake(8); vib(30);
+    const x=boss.c*cell+cell/2,y=boss.r*cell+cell/2;
+    burst(x,y,'#8a4b2d',12);
+    floaters.push({x,y:y-cell*.5,txt:'🔨 −6',t:0,life:.8,size:20,gold:true});
+    updateHUD();
+    if(boss.hp<=0) bossDefeatedSync();
+    return;
+  }
+  if(cand.blocker)return;
   clearTool();
   hammerCharges--; updateToolUI();
   const set=new Set([k2(cand.r,cand.c)]);
@@ -1196,7 +1240,7 @@ function shuffleBoard(){
   list.forEach(c=>{ c.pulse=1; });
 }
 
-/* ================= 3-Sterne-Finale ================= */
+/* ================= 3-Sterne-Finale (abgesichert) ================= */
 function startFinale(){
   if(finPhase>0)return;
   finPhase=1; finT=0; finPopT=0; finPopped=0;
@@ -1210,6 +1254,15 @@ function boardHasCandies(){
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) if(grid[r][c])return true;
   return false;
 }
+function wipeBoardHard(){
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const q=grid[r][c];
+    if(q){
+      if(q.blocker&&boss&&!boss.dead){ boss.dead=true; bossWin=true; }
+      grid[r][c]=null;
+    }
+  }
+}
 function popFinaleCandy(){
   try{
     const list=[];
@@ -1217,15 +1270,18 @@ function popFinaleCandy(){
     if(!list.length)return;
     const cand=list[Math.floor(rnd()*list.length)];
     if(cand.blocker){
-      grid[cand.r][cand.c]=null;
-      if(boss&&!boss.dead){
-        boss.dead=true; bossWin=true;
-        const x=cand.c*cell+cell/2, y=cand.r*cell+cell/2;
-        burst(x,y,'#8a4b2d',22);
-        waves.push({x,y,t:0,life:.55,max:cell*3.2});
-        explodeFirework({x,y,color:'#ffd23f'});
-        floaters.push({x,y:y-cell*.5,txt:'👹 Boss überrannt!',t:0,life:1.2,size:22,gold:true});
-        sBossDie(); shake(14); vib(70);
+      /* FIX: Boss immer über die echten Boss-Koordinaten entfernen */
+      if(boss){
+        if(inb(boss.r,boss.c)) grid[boss.r][boss.c]=null;
+        if(!boss.dead){
+          boss.dead=true; bossWin=true;
+          const x=boss.c*cell+cell/2, y=boss.r*cell+cell/2;
+          burst(x,y,'#8a4b2d',22);
+          waves.push({x,y,t:0,life:.55,max:cell*3.2});
+          explodeFirework({x,y,color:'#ffd23f'});
+          floaters.push({x,y:y-cell*.5,txt:'👹 Boss überrannt!',t:0,life:1.2,size:22,gold:true});
+          sBossDie(); shake(14); vib(70);
+        }
       }
       return;
     }
@@ -1236,7 +1292,7 @@ function popFinaleCandy(){
       shake(4);
     }
     finPopped++;
-  }catch(e){}
+  }catch(e){ showErr('Finale: '+e.message); }
 }
 function clearLeftoverJelly(){
   if(!jelly)return;
@@ -1275,12 +1331,14 @@ function updateFinale(dt){
       finPopT=0;
       for(let i=0;i<3;i++) popFinaleCandy();
       tone(460+Math.min(finPopped*11,900),.07,'triangle',Math.min(.18,.09+finPopped*.002));
-      if(!boardHasCandies()){
-        finPhase=2; finT=0;
-        clearLeftoverJelly();
-        sBomb(); flash(.55); shake(16); vib(70);
-        waves.push({x:sizePx/2,y:sizePx/2,t:0,life:.7,max:sizePx*.9});
-      }
+    }
+    /* FAILSAFE: nach 8 Sekunden wird das Brett garantiert geleert */
+    if(finT>8) wipeBoardHard();
+    if(!boardHasCandies()){
+      finPhase=2; finT=0;
+      clearLeftoverJelly();
+      sBomb(); flash(.55); shake(16); vib(70);
+      waves.push({x:sizePx/2,y:sizePx/2,t:0,life:.7,max:sizePx*.9});
     }
   }else if(finPhase===2&&finT>.7){
     finPhase=3;
@@ -1312,9 +1370,7 @@ function explodeFirework(r){
   tone(600+rnd()*600,.18,'triangle',.11);
   for(let i=0;i<3;i++) tone(900+rnd()*900,.05,'triangle',.05,.06+i*.06);
 }
-function startCelebration(dur){
-  celebT=dur; celebLaunch=0;
-}
+function startCelebration(dur){ celebT=dur; celebLaunch=0; }
 function updateFireworks(dt){
   if(celebT>0){
     celebT-=dt; celebLaunch-=dt;
@@ -1537,6 +1593,7 @@ function resetCommon(){
   bossWin=false;
   starFinish=false; finPhase=0; finT=0; finPopT=0; finPopped=0; winPending=false;
   fwRockets=[]; fwSparks=[]; celebT=0; celebLaunch=0; sweepT=0; lastPerfect=false;
+  ambients=[]; ambientT=0;
   mods={type:'score'}; feverMult=1; rushBonusMoves=2;
   document.body.classList.remove('rushActive');
   $('boardFrame').classList.remove('rush');
@@ -1568,9 +1625,9 @@ function startLevel(lv){
     const lt=mods.type;
     bossMusic=lt==='boss';
     if(lt==='boss'){
-      let hp=8+lv*2;
-      if(mods.megaboss) hp=Math.round(hp*1.6);
-      boss={hp,maxHp:hp,r:ROWS-1,c:3,hurt:0,dead:false,phase:rnd()*6,spawn:1};
+      let hp=6+lv;                       /* Boss-Nerf: weniger HP */
+      if(mods.megaboss) hp=Math.round(hp*1.35);
+      boss={hp,maxHp:hp,r:ROWS-1,c:3,hurt:0,dead:false,phase:rnd()*6,spawn:1,roarT:3+rnd()*3};
       goal=Math.round(goal*.8);
     }else if(lt==='jelly'){
       jelly=Array.from({length:ROWS},()=>Array(COLS).fill(0));
@@ -1603,7 +1660,7 @@ function startLevel(lv){
       const labels=modLabel(mods);
       banner('LEVEL '+lv,true);
       sFanfare();
-      if(labels.length) toast(labels.join(' · '));
+      if(labels.length) toast(labels.join(' · ')+' · 👹 Hammer = −6 Boss-Schaden!');
       if(lv%10===1&&lv>1){
         const z=ZONES[zoneFor(lv)];
         toast(z.icon+' Willkommen in '+z.name+'!');
@@ -1923,13 +1980,6 @@ function drawCandyBody(g,type,special,s){
     g.shadowColor=col.base; g.shadowBlur=s*.9;
     g.stroke();
     g.shadowBlur=0;
-    for(let i=0;i<4;i++){
-      const an=i*Math.PI/2+.5, x=Math.cos(an)*s*1.2, y=Math.sin(an)*s*1.2;
-      g.fillStyle='#fff';
-      g.save(); g.translate(x,y); g.rotate(an);
-      g.beginPath(); g.moveTo(0,-s*.12); g.lineTo(s*.07,0); g.lineTo(0,s*.12); g.lineTo(-s*.07,0); g.fill();
-      g.restore();
-    }
   }
 }
 function spriteKey(cand){
@@ -1999,6 +2049,43 @@ function fitBoard(){
   }catch(e){}
 }
 
+/* ================= Zonen-Wetter ================= */
+function updateAmbient(dt){
+  for(const a of ambients){ a.t+=dt; a.x+=a.vx*dt; a.y+=a.vy*dt; a.rot+=(a.vr||0)*dt; }
+  ambients=ambients.filter(a=>a.t<a.life&&a.y<sizePx+24&&a.y>-30);
+  if(mode!=='story'||lowFX||over||starFinish)return;
+  ambientT-=dt;
+  if(ambientT>0||ambients.length>26)return;
+  ambientT=.4+rnd()*.5;
+  const z=zoneFor(level);
+  if(z===0) ambients.push({kind:'petal',x:rnd()*sizePx,y:-12,vx:8+rnd()*18,vy:26+rnd()*26,life:6,t:0,r:cell*(.05+rnd()*.05),rot:rnd()*6,vr:1.5+rnd()*2,color:'#ffb3d1'});
+  else if(z===1) ambients.push({kind:'ember',x:rnd()*sizePx,y:sizePx+12,vx:(rnd()-.5)*16,vy:-(18+rnd()*36),life:4,t:0,r:cell*(.03+rnd()*.03),rot:0,vr:0,color:'#ffb066'});
+  else if(z===2) ambients.push({kind:'snow',x:rnd()*sizePx,y:-12,vx:(rnd()-.5)*18,vy:22+rnd()*22,life:7,t:0,r:cell*(.03+rnd()*.04),rot:0,vr:0,color:'#ffffff'});
+  else ambients.push({kind:'fly',x:rnd()*sizePx,y:sizePx*(.2+rnd()*.7),vx:(rnd()-.5)*26,vy:(rnd()-.5)*26,life:4,t:0,r:cell*.035,rot:0,vr:0,color:'#d8ff9c'});
+}
+function drawAmbient(){
+  for(const a of ambients){
+    const k=a.t/a.life, fade=Math.max(0,Math.min(1,k*4,(1-k)*3));
+    if(a.kind==='petal'){
+      ctx.save();ctx.globalAlpha=.5*fade;ctx.translate(a.x,a.y);ctx.rotate(a.rot);
+      ctx.fillStyle=a.color;ctx.beginPath();ctx.ellipse(0,0,a.r*1.4,a.r*.8,0,0,7);ctx.fill();ctx.restore();
+    }else if(a.kind==='ember'||a.kind==='fly'){
+      ctx.save();ctx.globalCompositeOperation='lighter';
+      const fl=a.kind==='fly'?(.5+.5*Math.sin(tGlobal*6+a.x)):1;
+      ctx.globalAlpha=.5*fade*fl;
+      ctx.fillStyle=a.color;
+      ctx.beginPath();ctx.arc(a.x,a.y,a.r*2.2,0,7);ctx.fill();
+      ctx.globalAlpha=.9*fade*fl;
+      ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,7);ctx.fill();
+      ctx.restore();
+    }else{
+      ctx.save();ctx.globalAlpha=.75*fade;ctx.fillStyle=a.color;
+      ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,7);ctx.fill();ctx.restore();
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
 /* ================= Zeichnen ================= */
 function drawCandyAt(cand){
   let sc=1+.02*Math.sin(tGlobal*2.4+cand.phase);
@@ -2007,6 +2094,7 @@ function drawCandyAt(cand){
   if(cand.pulse>0)sc*=1+cand.pulse*.18;
   const sq=cand.squash;
   ctx.save(); ctx.translate(cand.x,cand.y);
+  ctx.rotate(Math.sin(tGlobal*1.7+cand.phase)*0.05);
   ctx.fillStyle='rgba(60,15,40,.16)';
   ctx.beginPath(); ctx.ellipse(0,cell*.34,cell*.28,cell*.1,0,0,7); ctx.fill();
   if(cand.gold>0){
@@ -2174,6 +2262,7 @@ function draw(){
   ctx.save();
   if(shakeMag>.3) ctx.translate((Math.random()-.5)*shakeMag,(Math.random()-.5)*shakeMag);
   if(bgCanvas) ctx.drawImage(bgCanvas,0,0,sizePx,sizePx);
+  drawAmbient();
   drawJelly();
   if(hint&&hint.a&&hint.b){
     const a=.45+.4*Math.sin((hint.t||0)*5);
@@ -2214,7 +2303,6 @@ function draw(){
     ctx.beginPath(); ctx.arc(w.x,w.y,Math.max(1,k*w.max),0,7); ctx.stroke();
     ctx.globalAlpha=1;
   }
-  /* Regenbogen-Sweep (Rausch-Start) + Dauer-Schimmer im Rausch */
   if(sweepT>0){
     const k=1-sweepT/.7, x=k*(sizePx+400)-200;
     ctx.save(); ctx.globalAlpha=.25;
@@ -2229,6 +2317,13 @@ function draw(){
     const gg=ctx.createLinearGradient(x-80,0,x+80,0);
     gg.addColorStop(0,'rgba(255,255,255,0)');gg.addColorStop(.5,'#fff');gg.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle=gg; ctx.fillRect(x-80,0,160,sizePx);
+    ctx.restore();
+    ctx.save();ctx.globalAlpha=.08;ctx.strokeStyle='#fff';ctx.lineWidth=2;
+    for(let i=0;i<6;i++){
+      const y=((tGlobal*300+i*140)%(sizePx+80))-40;
+      ctx.beginPath();ctx.moveTo(-10,y);ctx.lineTo(sizePx*.4,y-40);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(sizePx+10,sizePx-y);ctx.lineTo(sizePx*.6,sizePx-y+40);ctx.stroke();
+    }
     ctx.restore();
   }
   for(const p of particles) drawParticle(p);
@@ -2254,6 +2349,12 @@ function draw(){
     ctx.strokeText('🔥 ×'+liveCombo,0,0);
     ctx.fillStyle=rush?'#ffd23f':'#fff'; ctx.fillText('🔥 ×'+liveCombo,0,0);
     ctx.restore();
+  }
+  if(mode!=='zeit'&&!over&&moves<=3&&moves>0&&!starFinish){
+    const p=.5+.5*Math.sin(tGlobal*5);
+    const vg=ctx.createRadialGradient(sizePx/2,sizePx/2,sizePx*.45,sizePx/2,sizePx/2,sizePx*.72);
+    vg.addColorStop(0,'rgba(255,0,40,0)');vg.addColorStop(1,`rgba(255,0,40,${.10+.09*p})`);
+    ctx.fillStyle=vg;ctx.fillRect(0,0,sizePx,sizePx);
   }
   if(tool&&mousePos){
     ctx.save(); ctx.translate(mousePos.x,mousePos.y);
@@ -2319,6 +2420,7 @@ function update(dt,rawDt){
 
   updateFinale(dt);
   updateFireworks(dt);
+  updateAmbient(dt);
 
   if(st==='swapping'&&stT>=.15){
     const a=pendingSwap.a,b=pendingSwap.b;
@@ -2368,6 +2470,17 @@ function update(dt,rawDt){
   if(boss&&!boss.dead){
     if(boss.hurt>0)boss.hurt=Math.max(0,boss.hurt-dt*3);
     if(boss.spawn>0)boss.spawn=Math.max(0,boss.spawn-dt*1.4);
+    if(boss.roarT!==undefined){
+      boss.roarT-=dt;
+      if(boss.roarT<=0){
+        boss.roarT=5+rnd()*4;
+        const x=boss.c*cell+cell/2,y=boss.r*cell+cell/2;
+        burst(x,y-cell*.3,'#a05c36',6);
+        shake(3);
+        tone(85,.25,'sawtooth',.06,0,-30);
+        floaters.push({x,y:y-cell*.7,txt:'Grrr!',t:0,life:.8,size:15});
+      }
+    }
   }
   if(mode==='zeit'&&started&&!over){
     zeitLeft-=rawDt;
