@@ -163,7 +163,7 @@
     100%{opacity:0;transform:translateX(-50%) scale(1.05) translateY(-26px) rotate(-5deg)}}
   #toast{position:absolute;left:50%;top:10px;transform:translateX(-50%) translateY(-80px);z-index:7;
     background:var(--choc);color:var(--cream);font-weight:800;font-size:13px;padding:7px 16px;border-radius:999px;
-    box-shadow:0 4px 0 rgba(0,0,0,.25);transition:transform .35s cubic-bezier(.34,1.5,.64,1);pointer-events:none;white-space:nowrap;max-width:92%}
+    box-shadow:0 4px 0 rgba(0,0,0,.25);transition:transform .35s cubic-bezier(.34,1.5,.64,1);pointer-events:none;white-space:nowrap;max-width:94%}
   #toast.show{transform:translateX(-50%) translateY(0)}
 
   .toolBtn{position:absolute;right:-8px;z-index:8;width:clamp(50px,8vmin,62px);height:clamp(50px,8vmin,62px);
@@ -250,6 +250,7 @@
   .node .nStars{font-size:10px;line-height:1;letter-spacing:1px;color:#c9b8a3}
   .node .nStars b{color:#ffb300;font-weight:800}
   .node .nBadge{position:absolute;top:-10px;right:-10px;font-size:17px;filter:drop-shadow(0 2px 0 rgba(60,26,15,.3))}
+  .node .nMod{position:absolute;bottom:-9px;left:-9px;font-size:15px;filter:drop-shadow(0 2px 0 rgba(60,26,15,.3))}
   .node.jelly{background:#ffd3e6}
   .node.boss{background:#8a4b2d;color:#fff}
   .node.boss .nStars{color:#d9b79f}
@@ -327,8 +328,8 @@
         <li>🍭 <span><b>4er-Reihe</b> → Streifen-Bonbon</span></li>
         <li>💥 <span><b>L-/T-Form</b> → Knall-Bonbon (3×3)</span></li>
         <li>🌈 <span><b>5er-Reihe</b> → Farb-Bombe</span></li>
-        <li>⭐ <span><b>3. Stern</b> → Mega-Kettenreaktion beendet das Level!</span></li>
-        <li>🚀 <span><b>Verbleibende Züge</b> geben dicken Punkte-Bonus</span></li>
+        <li>⭐ <span><b>3. Stern</b> → Kettenreaktion + Zug-Bonus!</span></li>
+        <li>🎲 <span><b>Abwechslung</b>: 🏃 Sprint · 🐘 Marathon · 💛 Goldrausch · 🧰 Werkzeug-Kiste · 🔥 Kombo-Fieber · 💢 Mega-Boss</span></li>
         <li>🗺️ <span><b>4 Zonen</b>, 🔥 Serie = +2 Züge, 🎁 Tagesgeschenk</span></li>
       </ul>
     </div>
@@ -347,7 +348,7 @@
 
   <div class="foot">
     <span class="chip">⭐ 3. Stern = Kettenreaktion</span>
-    <span class="chip">🚀 Restzüge = Bonus</span>
+    <span class="chip">🎲 Jedes Level anders</span>
     <span class="chip">🍭 4er → Streifen</span>
     <span class="chip">🌈 5er → Bombe</span>
     <span class="chip">🗺️ 4 Zonen</span>
@@ -376,10 +377,10 @@
     <div class="brand" style="font-size:clamp(32px,8vw,52px)">
       <span>B</span><span>O</span><span>N</span><span>B</span><span>O</span><span>N</span><span class="gap"></span><span>B</span><span>L</span><span>I</span><span>T</span><span>Z</span>
     </div>
-    <p class="tag">Erreiche den 3. Stern → MEGA-KETTENREAKTION + Zug-Bonus! 💥</p>
+    <p class="tag">Jedes Level ist anders: Sprint, Goldrausch, Werkzeug-Kiste, Mega-Bosse… 💥</p>
     <div class="howto">
       <span class="chip">⭐ 3. Stern = Kettenreaktion</span>
-      <span class="chip">🚀 Restzüge = Bonus</span>
+      <span class="chip">🎲 Level-Varianten entdecken</span>
       <span class="chip">🗺️ 4 Zonen</span>
       <span class="chip">🏅 8 Erfolge</span>
       <span class="chip">🔥 Serie = Bonus-Züge</span>
@@ -430,11 +431,13 @@
 <script>
 'use strict';
 /* ============================================================
-   BONBON BLITZ v11
-   NEU: 3. Stern → Mega-Kettenreaktion (Board explodiert),
-        danach Zug-Bonus für verbleibende Züge, Level beendet.
-   Dazu: Zonen, Erfolge, Serie, Zeitjagd, Daily, Speicherstand,
-         synchrone State-Machine (kein await im Spielablauf).
+   BONBON BLITZ v12
+   FIX: 3-Sterne-Finale gegen Boss-Level abgesichert
+        (Finale übernimmt die Kontrolle, überrennt den Boss,
+         räumt Gelee, doppelter Sieg-Schutz).
+   NEU: Level-Varianten (Sprint, Marathon, Goldrausch,
+        Werkzeug-Kiste, Kombo-Fieber, Mega-Boss) mit Badges
+        auf der Karte und Ansagen beim Levelstart.
    ============================================================ */
 
 let errShown=0;
@@ -518,6 +521,30 @@ const ZONES=[
 function zoneFor(lv){ return Math.min(ZONES.length-1,Math.floor((Math.max(1,lv)-1)/10)); }
 function curZonePal(){ return ZONES[mode==='story'?zoneFor(level):0]; }
 
+/* ================= Level-Varianten ================= */
+function levelMods(lv){
+  return {
+    type: levelType(lv),
+    sprint:   lv%7===3,
+    marathon: lv%7===6,
+    goldrush: lv%10===7,
+    toolbox:  lv%10===4,
+    feverfast:lv%10===8,
+    megaboss: lv%10===0
+  };
+}
+function modLabel(m){
+  const parts=[];
+  if(m.type==='jelly') parts.push('🍮 Gelee');
+  if(m.type==='boss') parts.push(m.megaboss?'💢 MEGA-BOSS':'👹 Boss');
+  if(m.sprint) parts.push('🏃 Sprint');
+  if(m.marathon) parts.push('🐘 Marathon');
+  if(m.goldrush) parts.push('💛 Goldrausch');
+  if(m.toolbox) parts.push('🧰 Werkzeug-Kiste');
+  if(m.feverfast) parts.push('🔥 Kombo-Fieber');
+  return parts;
+}
+
 /* ================= Grundlagen ================= */
 const COLS=8, ROWS=8;
 let TYPES=5;
@@ -534,10 +561,9 @@ let sizePx=480, cell=60, dpr=1;
 
 let st='idle', stT=0;
 let pendingSwap=null, pendingTransforms=[], comboCount=0, turnMaxCombo=0;
-let queuedSwap=null;
 
 /* 3-Sterne-Finale */
-let starFinish=false, finPhase=0, finT=0, finPopT=0, finPopped=0;
+let starFinish=false, finPhase=0, finT=0, finPopT=0, finPopped=0, winPending=false;
 
 let grid=[], particles=[], floaters=[], waves=[], dying=[], beams=[];
 let score=0, moves=0, level=1, goal=0, over=false, started=false, goalHit=false;
@@ -550,6 +576,7 @@ let boss=null, bossMusic=false, bossWin=false;
 let mode='story', zeitLeft=60, lastTick=99, campaignLevel=Math.max(1,SAVE.cv);
 let best=SAVE.best, zeitBest=SAVE.zeitBest, dailyBest=SAVE.dailyBest;
 let lastWinBonus=0;
+let mods={type:'score'}, feverMult=1, rushBonusMoves=2;
 
 let lowFX=false, frames=0, fpsVal=60, ftAcc=0, ftCnt=0, slowStreak=0;
 let liveCombo=0, levelMaxCombo=0, lastHudKey='';
@@ -840,13 +867,13 @@ function flash(a){
 }
 function addFever(n){
   if(rush||over)return;
-  fever=Math.min(100,fever+n);
+  fever=Math.min(100,fever+n*feverMult);
   if(fever>=100) startRush();
 }
 function startRush(){
   rush=true; rushT=8;
   if(mode==='zeit'){ zeitLeft=Math.min(90,zeitLeft+3); toast('🌈 +3 Sekunden!'); }
-  else{ moves+=2; toast('🌈 +2 Bonus-Züge!'); }
+  else{ moves+=rushBonusMoves; toast(`🌈 +${rushBonusMoves} Bonus-Züge!`); }
   updateHUD();
   $('boardFrame').classList.add('rush');
   document.body.classList.add('rushActive');
@@ -855,7 +882,7 @@ function startRush(){
   sRush(); flash(.3); shake(10);
 }
 function damageBoss(n,x,y){
-  if(!boss||boss.dead)return;
+  if(!boss||boss.dead||starFinish)return;
   boss.hp-=n; boss.hurt=1;
   sBossHit(); shake(5); vib(20);
   floaters.push({x,y:y-cell*.4,txt:'👹 −'+n,t:0,life:.7,size:18});
@@ -913,7 +940,7 @@ function runClearEffects(set,spawnKeys,combo,opts){
     sPop(combo);
     addFever(n*1.1+4);
     updateHUD();
-    /* NEU: 3. Stern erreicht → Kettenreaktion einleiten */
+    /* 3. Stern erreicht → Kettenreaktion */
     if(!starFinish&&(mode==='story'||mode==='daily')&&score>=threeStarThr()){
       starFinish=true;
     }
@@ -985,8 +1012,6 @@ function finishChain(){
   if(turnMaxCombo>=4)addHammer();
   if(turnMaxCombo>=5)addRocket();
   turnMaxCombo=0;
-  queuedSwap=null;
-  /* NEU: 3. Stern → Kettenreaktion statt normalem Weiterlauf */
   if(starFinish){ startFinale(); return; }
   if(!over) afterMove();
 }
@@ -1082,8 +1107,8 @@ function checkObjectives(){
   return false;
 }
 function triggerWin(){
-  if(over||starFinish)return;
-  over=true;
+  if(over||starFinish||winPending)return;
+  over=true; winPending=true;
   lastWinBonus=0;
   if(mode!=='zeit'&&moves>0){
     lastWinBonus=moves*60;
@@ -1101,7 +1126,7 @@ function afterMove(){
   if(mode!=='zeit'&&moves<=0){
     over=true;
     const won=!boss&&!jelly&&score>=goal;
-    if(won) triggerWin();
+    if(won){ triggerWin(); }
     else{
       SAVE.streak=0; persist();
       setTimeout(showLose,550);
@@ -1150,10 +1175,12 @@ function shuffleBoard(){
   list.forEach(c=>{ c.pulse=1; });
 }
 
-/* ================= 3-Sterne-Kettenreaktion ================= */
+/* ================= 3-Sterne-Kettenreaktion (abgesichert) ================= */
 function startFinale(){
   if(finPhase>0)return;
   finPhase=1; finT=0; finPopT=0; finPopped=0;
+  over=true;              // ab jetzt kontrolliert nur noch das Finale das Spiel
+  clearTool();
   banner('⭐ 3 STERNE! KETTENREAKTION!',true);
   sRush(); shake(12); flash(.3); vib(60);
   if(!lowFX) candyRain();
@@ -1163,27 +1190,47 @@ function boardHasCandies(){
   return false;
 }
 function popFinaleCandy(){
-  const list=[];
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){ const q=grid[r][c]; if(q) list.push(q); }
-  if(!list.length)return;
-  const cand=list[Math.floor(rnd()*list.length)];
-  if(cand.blocker){
+  try{
+    const list=[];
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){ const q=grid[r][c]; if(q) list.push(q); }
+    if(!list.length)return;
+    const cand=list[Math.floor(rnd()*list.length)];
+    if(cand.blocker){
+      grid[cand.r][cand.c]=null;
+      if(boss&&!boss.dead){
+        boss.dead=true; bossWin=true;
+        const x=cand.c*cell+cell/2, y=cand.r*cell+cell/2;
+        burst(x,y,'#8a4b2d',22);
+        waves.push({x,y,t:0,life:.55,max:cell*3.2});
+        floaters.push({x,y:y-cell*.5,txt:'👹 Boss überrannt!',t:0,life:1.2,size:22,gold:true});
+        sBossDie(); shake(14); vib(70);
+      }
+      return;
+    }
     grid[cand.r][cand.c]=null;
-    if(boss){ boss.dead=true; bossWin=true; }
-    burst(cand.x,cand.y,'#8a4b2d',20);
-    waves.push({x:cand.x,y:cand.y,t:0,life:.5,max:cell*3});
-    shake(8);
-    return;
+    burst(cand.x,cand.y,(cand.type>=0&&COLORS[cand.type])?COLORS[cand.type].base:'#fff',6);
+    if(cand.special){
+      waves.push({x:cand.x,y:cand.y,t:0,life:.4,max:cell*2.5});
+      shake(4);
+    }
+    finPopped++;
+  }catch(e){}
+}
+function clearLeftoverJelly(){
+  if(!jelly)return;
+  let any=false;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    if(jelly[r][c]){
+      any=true;
+      burst(c*cell+cell/2,r*cell+cell/2,'#ff7aa2',5);
+      jelly[r][c]=0;
+    }
   }
-  grid[cand.r][cand.c]=null;
-  burst(cand.x,cand.y,(cand.type>=0&&COLORS[cand.type])?COLORS[cand.type].base:'#fff',6);
-  if(cand.special){
-    waves.push({x:cand.x,y:cand.y,t:0,life:.4,max:cell*2.5});
-    shake(4);
-  }
-  finPopped++;
+  if(any) sJelly();
 }
 function finishStarLevel(){
+  if(winPending)return;
+  winPending=true;
   over=true;
   lastWinBonus=Math.max(0,moves)*60;
   if(lastWinBonus>0){
@@ -1198,6 +1245,7 @@ function updateFinale(dt){
   if(!starFinish||finPhase===0||finPhase>=3)return;
   finT+=dt;
   if(finPhase===1){
+    if(st!=='idle'){ st='idle'; }
     finPopT+=dt;
     if(finPopT>=.055){
       finPopT=0;
@@ -1205,6 +1253,7 @@ function updateFinale(dt){
       tone(460+Math.min(finPopped*11,900),.07,'triangle',Math.min(.18,.09+finPopped*.002));
       if(!boardHasCandies()){
         finPhase=2; finT=0;
+        clearLeftoverJelly();
         sBomb(); flash(.55); shake(16); vib(70);
         waves.push({x:sizePx/2,y:sizePx/2,t:0,life:.7,max:sizePx*.9});
       }
@@ -1295,7 +1344,7 @@ function toast(msg){
   try{
     const el=$('toast'); if(!el)return;
     el.textContent=msg; el.classList.add('show');
-    clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2400);
   }catch(e){}
 }
 function confetti(container,n){
@@ -1384,9 +1433,10 @@ function resetCommon(){
   fever=0; rush=false; rushT=0; goldTimer=6; clearTool();
   hammerCharges=1; rocketCharges=0;
   levelMaxCombo=0; liveCombo=0; lastHudKey='';
-  st='idle'; stT=0; pendingSwap=null; pendingTransforms=[]; queuedSwap=null; turnMaxCombo=0; comboCount=0;
+  st='idle'; stT=0; pendingSwap=null; pendingTransforms=[]; turnMaxCombo=0; comboCount=0;
   bossWin=false;
-  starFinish=false; finPhase=0; finT=0; finPopT=0; finPopped=0;
+  starFinish=false; finPhase=0; finT=0; finPopT=0; finPopped=0; winPending=false;
+  mods={type:'score'}; feverMult=1; rushBonusMoves=2;
   document.body.classList.remove('rushActive');
   $('boardFrame').classList.remove('rush');
   $('rushTag').classList.remove('show');
@@ -1407,10 +1457,20 @@ function startLevel(lv){
     level=lv; campaignLevel=lv; TYPES=lv>=3?6:5;
     goal=1800+(lv-1)*1400;
     moves=22;
-    const lt=levelType(lv);
+    mods=levelMods(lv);
+    /* Varianten anwenden */
+    if(mods.sprint){ moves=15; goal=Math.round(goal*.7); }
+    if(mods.marathon){ moves=28; goal=Math.round(goal*1.4); }
+    if(mods.goldrush){ goldTimer=2.5; }
+    if(mods.toolbox){ hammerCharges=2; rocketCharges=1; }
+    if(mods.feverfast){ feverMult=2; rushBonusMoves=4; }
+
+    const lt=mods.type;
     bossMusic=lt==='boss';
     if(lt==='boss'){
-      boss={hp:8+lv*2,maxHp:8+lv*2,r:ROWS-1,c:3,hurt:0,dead:false,phase:rnd()*6,spawn:1};
+      let hp=8+lv*2;
+      if(mods.megaboss) hp=Math.round(hp*1.6);
+      boss={hp,maxHp:hp,r:ROWS-1,c:3,hurt:0,dead:false,phase:rnd()*6,spawn:1};
       goal=Math.round(goal*.8);
     }else if(lt==='jelly'){
       jelly=Array.from({length:ROWS},()=>Array(COLS).fill(0));
@@ -1440,15 +1500,14 @@ function startLevel(lv){
     fitBoard(); cascadeIn(); updateHUD();
     applyGift();
     if(started){
-      const icon=lt==='boss'?' 👹':lt==='jelly'?' 🍮':' 🎯';
-      banner('LEVEL '+lv+icon,true);
+      const labels=modLabel(mods);
+      banner('LEVEL '+lv,true);
       sFanfare();
+      if(labels.length) toast(labels.join(' · '));
       if(lv%10===1&&lv>1){
         const z=ZONES[zoneFor(lv)];
         toast(z.icon+' Willkommen in '+z.name+'!');
       }
-      if(lt==='jelly') toast('🍮 Befrei alle Gelee-Felder!');
-      if(lt==='boss') toast('👹 Besiege den Schoko-Boss!');
       if(lv>=11) unlockAch('zone2');
     }
   }catch(err){ showErr('Levelstart: '+err.message); }
@@ -1625,19 +1684,25 @@ function buildMap(){
     }
     for(let lv=1;lv<=maxShow;lv++){
       const p=pts[lv-1];
-      const lt=levelType(lv);
+      const m=levelMods(lv);
       const unlocked=lv<=SAVE.cv;
       const doneStars=SAVE.stars[lv]||0;
       const b=document.createElement('button');
-      b.className='node '+lt+(unlocked?'':' lock')+(doneStars>0?' done':'')+(lv===SAVE.cv?' cur':'');
+      b.className='node '+m.type+(unlocked?'':' lock')+(doneStars>0?' done':'')+(lv===SAVE.cv?' cur':'');
       b.style.left=p.x+'px'; b.style.top=p.y+'px';
       if(unlocked){
         b.innerHTML=`<span class="nNum">${lv}</span><span class="nStars">${'<b>★</b>'.repeat(doneStars)}${'☆'.repeat(3-doneStars)}</span>`;
       }else{
         b.innerHTML=`<span class="nNum">🔒</span>`;
       }
-      if(lt==='boss') b.innerHTML+='<span class="nBadge">👹</span>';
-      else if(lt==='jelly') b.innerHTML+='<span class="nBadge">🍮</span>';
+      if(m.type==='boss') b.innerHTML+='<span class="nBadge">'+(m.megaboss?'💢':'👹')+'</span>';
+      else if(m.type==='jelly') b.innerHTML+='<span class="nBadge">🍮</span>';
+      let mi='';
+      if(m.sprint) mi='🏃'; else if(m.marathon) mi='🐘';
+      else if(m.goldrush) mi='💛'; else if(m.toolbox) mi='🧰';
+      else if(m.feverfast) mi='🔥';
+      if(mi) b.innerHTML+='<span class="nMod">'+mi+'</span>';
+      b.title=modLabel(m).join(' · ');
       b.addEventListener('click',()=>{
         ac();
         if(unlocked){ $('ovMap').classList.add('hide'); startLevel(lv); sSelect(); }
@@ -2115,7 +2180,6 @@ function update(dt,rawDt){
     if(cand.gold>0)cand.gold=Math.max(0,cand.gold-dt);
   }
 
-  /* 3-Sterne-Kettenreaktion */
   updateFinale(dt);
 
   if(st==='swapping'&&stT>=.15){
@@ -2182,7 +2246,10 @@ function update(dt,rawDt){
     hintTimer+=dt;
     if(hintTimer>5&&!hint){ const m=findMove(); if(m)hint={a:m[0],b:m[1],t:0}; }
     goldTimer-=dt;
-    if(goldTimer<=0){ spawnGold(); goldTimer=9+rnd()*6; }
+    if(goldTimer<=0){
+      spawnGold();
+      goldTimer=mods.goldrush?3+rnd()*3:9+rnd()*6;
+    }
   }
   if(rush){
     rushT-=dt;
