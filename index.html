@@ -133,6 +133,8 @@
 
   .boardArea{grid-area:board;display:flex;align-items:center;justify-content:center;min-height:0;min-width:0}
   .boardShell{position:relative}
+  .boardShell.zoomPulse{animation:zoomPulse .45s cubic-bezier(.3,1.5,.5,1)}
+  @keyframes zoomPulse{0%{transform:scale(1)}35%{transform:scale(1.045)}100%{transform:scale(1)}}
   .boardFrame{padding:clamp(8px,1.4vmin,16px);border-radius:clamp(18px,3vmin,30px);border:3px solid var(--chocDark);
     background-color:#5c2e1d;
     background-image:
@@ -328,15 +330,15 @@
         <li>🍭 <span><b>4er-Reihe</b> → Streifen-Bonbon</span></li>
         <li>💥 <span><b>L-/T-Form</b> → Knall-Bonbon (3×3)</span></li>
         <li>🌈 <span><b>5er-Reihe</b> → Farb-Bombe</span></li>
-        <li>⭐ <span><b>3. Stern</b> → Kettenreaktion + Zug-Bonus!</span></li>
-        <li>🎲 <span><b>Abwechslung</b>: 🏃 Sprint · 🐘 Marathon · 💛 Goldrausch · 🧰 Werkzeug-Kiste · 🔥 Kombo-Fieber · 💢 Mega-Boss</span></li>
-        <li>🗺️ <span><b>4 Zonen</b>, 🔥 Serie = +2 Züge, 🎁 Tagesgeschenk</span></li>
+        <li>⭐ <span><b>3. Stern</b> → Kettenreaktion + Zug-Bonus + Feuerwerk!</span></li>
+        <li>🎯 <span><b>Perfekt-Sieg</b>: 10+ Restzüge = +1.000 Punkte</span></li>
+        <li>🎲 <span><b>Varianten</b>: 🏃 Sprint · 🐘 Marathon · 💛 Goldrausch · 🧰 Kiste · 🔥 Fieber · 💢 Mega-Boss</span></li>
       </ul>
     </div>
   </div>
 
   <div class="boardArea" id="boardArea">
-    <div class="boardShell">
+    <div class="boardShell" id="boardShell">
       <div class="boardFrame" id="boardFrame"><canvas id="cv"></canvas></div>
       <div id="flash"></div>
       <div id="comboPop"></div>
@@ -348,10 +350,9 @@
 
   <div class="foot">
     <span class="chip">⭐ 3. Stern = Kettenreaktion</span>
+    <span class="chip">🎯 10+ Restzüge = +1.000</span>
+    <span class="chip">🎆 Feuerwerk zum Sieg</span>
     <span class="chip">🎲 Jedes Level anders</span>
-    <span class="chip">🍭 4er → Streifen</span>
-    <span class="chip">🌈 5er → Bombe</span>
-    <span class="chip">🗺️ 4 Zonen</span>
   </div>
 </div>
 
@@ -377,12 +378,12 @@
     <div class="brand" style="font-size:clamp(32px,8vw,52px)">
       <span>B</span><span>O</span><span>N</span><span>B</span><span>O</span><span>N</span><span class="gap"></span><span>B</span><span>L</span><span>I</span><span>T</span><span>Z</span>
     </div>
-    <p class="tag">Jedes Level ist anders: Sprint, Goldrausch, Werkzeug-Kiste, Mega-Bosse… 💥</p>
+    <p class="tag">Gewinne mit 3 Sternen → Kettenreaktion & großes Feuerwerk! 🎆</p>
     <div class="howto">
       <span class="chip">⭐ 3. Stern = Kettenreaktion</span>
-      <span class="chip">🎲 Level-Varianten entdecken</span>
+      <span class="chip">🎯 Perfekt-Sieg = +1.000</span>
+      <span class="chip">🎲 Level-Varianten</span>
       <span class="chip">🗺️ 4 Zonen</span>
-      <span class="chip">🏅 8 Erfolge</span>
       <span class="chip">🔥 Serie = Bonus-Züge</span>
     </div>
     <div class="btnRow">
@@ -401,6 +402,7 @@
     <div class="bigStars" id="winStars"><span>★</span><span>★</span><span>★</span></div>
     <p class="scoreLine">Punkte: <b id="winScore">0</b></p>
     <p class="scoreLine" id="winBonusLine" style="font-size:14px;display:none">🚀 Zug-Bonus: <b id="winBonus" style="font-size:18px">+0</b></p>
+    <p class="scoreLine" id="winPerfectLine" style="font-size:14px;display:none">🎯 PERFEKT-Sieg: <b style="font-size:18px">+1.000</b></p>
     <p class="scoreLine" style="font-size:14px">🔥 Beste Kombo: <b id="winCombo" style="font-size:18px">×0</b></p>
     <p class="recLine" id="recLineWin">🏆 Rekord: <b id="winBest">0</b> <span class="newRec">NEUER REKORD!</span></p>
     <div class="btnRow">
@@ -431,13 +433,13 @@
 <script>
 'use strict';
 /* ============================================================
-   BONBON BLITZ v12
-   FIX: 3-Sterne-Finale gegen Boss-Level abgesichert
-        (Finale übernimmt die Kontrolle, überrennt den Boss,
-         räumt Gelee, doppelter Sieg-Schutz).
-   NEU: Level-Varianten (Sprint, Marathon, Goldrausch,
-        Werkzeug-Kiste, Kombo-Fieber, Mega-Boss) mit Badges
-        auf der Karte und Ansagen beim Levelstart.
+   BONBON BLITZ v13 – Feuerwerk & Mega-Juice
+   - 🎆 Feuerwerk-Show vor dem Sieg-Screen (Raketen, Glüh-Funken)
+   - 🎯 Perfekt-Sieg-Bonus (10+ Restzüge → +1.000)
+   - 🌈 Regenbogen-Sweep + Schimmer im Rausch
+   - 💫 Zoom-Pulse, Funken-Schweife beim Tauschen, Bonbon-Glimmern
+   - Weiterhin: 3-Sterne-Kettenreaktion, Level-Varianten, Zonen,
+     Bosse, Gelee, Serie, Erfolge, Speicherstand, State-Machine
    ============================================================ */
 
 let errShown=0;
@@ -511,7 +513,7 @@ function applyGift(){
   sGold();
 }
 
-/* ================= Zonen ================= */
+/* ================= Zonen & Varianten ================= */
 const ZONES=[
   {name:'Zuckerwiesen',icon:'🌸',sky:['#ffd9e8','#ffe9c7','#cdeeda'],cellA:'#ffe4ef',cellB:'#ffd3e6',frame:'#5c2e1d'},
   {name:'Schoko-Schlucht',icon:'🍫',sky:['#e8c39a','#c68d5f','#8a5a3b'],cellA:'#f3ddc8',cellB:'#e7c9ab',frame:'#3f2314'},
@@ -520,8 +522,6 @@ const ZONES=[
 ];
 function zoneFor(lv){ return Math.min(ZONES.length-1,Math.floor((Math.max(1,lv)-1)/10)); }
 function curZonePal(){ return ZONES[mode==='story'?zoneFor(level):0]; }
-
-/* ================= Level-Varianten ================= */
 function levelMods(lv){
   return {
     type: levelType(lv),
@@ -562,10 +562,11 @@ let sizePx=480, cell=60, dpr=1;
 let st='idle', stT=0;
 let pendingSwap=null, pendingTransforms=[], comboCount=0, turnMaxCombo=0;
 
-/* 3-Sterne-Finale */
 let starFinish=false, finPhase=0, finT=0, finPopT=0, finPopped=0, winPending=false;
 
 let grid=[], particles=[], floaters=[], waves=[], dying=[], beams=[];
+let fwRockets=[], fwSparks=[], celebT=0, celebLaunch=0, sweepT=0, lastPerfect=false;
+
 let score=0, moves=0, level=1, goal=0, over=false, started=false, goalHit=false;
 let sel=null, hoverCand=null, drag=null, hint=null, hintTimer=0;
 let lastSwap=[], shakeMag=0, tGlobal=0, muted=SAVE.muted, slowmo=0;
@@ -653,13 +654,14 @@ const sSpawn=()=>tone(1150,.18,'sine',.12,0,650);
 const sGold=()=>{tone(1568,.13,'sine',.14);tone(2093,.18,'sine',.1,.07);};
 const sJelly=()=>{tone(320,.09,'sine',.15,0,-140);noiseBurst(.07,.06,700);};
 const sRush=()=>[784,988,1175,1568,1976].forEach((f,i)=>tone(f,.22,'triangle',.15,i*.06));
-const sWin=()=>[660,784,988,1319].forEach((f,i)=>tone(f,.22,'triangle',.2,i*.12));
+const sWin=()=>[660,784,988,1319,1568].forEach((f,i)=>tone(f,.22,'triangle',.2,i*.12));
 const sLose=()=>[420,340,270,200].forEach((f,i)=>tone(f,.28,'sine',.16,i*.15));
 const sBossHit=()=>{tone(180,.1,'square',.18,0,-80);noiseBurst(.07,.11,500);};
 const sBossDie=()=>{tone(220,.55,'sawtooth',.25,0,-160);noiseBurst(.5,.3,600);tone(60,.6,'sine',.3);};
 const sRocket=()=>{noiseBurst(.3,.22,2400);tone(300,.3,'sawtooth',.14,0,900);};
 const sTick=()=>tone(880,.05,'square',.12);
 const sFanfare=()=>{tone(523,.15,'triangle',.18);tone(659,.15,'triangle',.18,.1);tone(784,.2,'triangle',.18,.2);tone(1046,.3,'triangle',.2,.3);};
+const sPerfect=()=>{tone(1046,.2,'triangle',.2);tone(1318,.2,'triangle',.2,.1);tone(1568,.3,'triangle',.22,.2);};
 
 /* ================= BGM ================= */
 let musicOn=SAVE.musicOn, mTimer=null, mStep=0, mNext=0, MUSGAIN=null;
@@ -865,13 +867,20 @@ function flash(a){
     requestAnimationFrame(()=>requestAnimationFrame(()=>{ el.style.transition='opacity .5s'; el.style.opacity=0; }));
   }catch(e){}
 }
+function zoomPulse(){
+  try{
+    const el=$('boardShell');
+    el.classList.remove('zoomPulse'); void el.offsetWidth;
+    el.classList.add('zoomPulse');
+  }catch(e){}
+}
 function addFever(n){
   if(rush||over)return;
   fever=Math.min(100,fever+n*feverMult);
   if(fever>=100) startRush();
 }
 function startRush(){
-  rush=true; rushT=8;
+  rush=true; rushT=8; sweepT=.7;
   if(mode==='zeit'){ zeitLeft=Math.min(90,zeitLeft+3); toast('🌈 +3 Sekunden!'); }
   else{ moves+=rushBonusMoves; toast(`🌈 +${rushBonusMoves} Bonus-Züge!`); }
   updateHUD();
@@ -879,7 +888,7 @@ function startRush(){
   document.body.classList.add('rushActive');
   $('rushTag').classList.add('show');
   banner('ZUCKER-RAUSCH ×2!',true);
-  sRush(); flash(.3); shake(10);
+  sRush(); flash(.3); shake(10); zoomPulse();
 }
 function damageBoss(n,x,y){
   if(!boss||boss.dead||starFinish)return;
@@ -893,9 +902,10 @@ function bossDefeatedSync(){
   if(!boss||boss.dead)return;
   boss.dead=true;
   const x=boss.c*cell+cell/2, y=boss.r*cell+cell/2;
-  sBossDie(); flash(.65); shake(22); slowmo=.25; vib(80);
+  sBossDie(); flash(.65); shake(22); slowmo=.25; vib(80); zoomPulse();
   waves.push({x,y,t:0,life:.7,max:sizePx*.8});
   burst(x,y,'#8a4b2d',24); starBurst(x,y); heartBurst(x,y,6);
+  explodeFirework({x,y,color:'#ffd23f'});
   floaters.push({x,y:y-cell*.5,txt:'👹 BOSS BESIEGT! +1.500',t:0,life:1.6,size:26,gold:true});
   score+=1500; updateHUD();
   if(grid[boss.r]) grid[boss.r][boss.c]=null;
@@ -940,9 +950,9 @@ function runClearEffects(set,spawnKeys,combo,opts){
     sPop(combo);
     addFever(n*1.1+4);
     updateHUD();
-    /* 3. Stern erreicht → Kettenreaktion */
     if(!starFinish&&(mode==='story'||mode==='daily')&&score>=threeStarThr()){
       starFinish=true;
+      launchFirework(); launchFirework(); zoomPulse();
     }
   }
   if(opts.boom) shake(18);
@@ -1106,6 +1116,15 @@ function checkObjectives(){
   if(jelly&&jellyRemaining()<=0){ triggerWin(); return true; }
   return false;
 }
+function applyPerfectBonus(){
+  if((mode==='story'||mode==='daily')&&moves>=10){
+    lastPerfect=true;
+    score+=1000;
+    floaters.push({x:sizePx/2,y:sizePx/2-cell*.8,txt:'🎯 PERFEKT! +1.000',t:0,life:1.6,size:26,gold:true});
+    sPerfect(); zoomPulse();
+    updateHUD();
+  }
+}
 function triggerWin(){
   if(over||starFinish||winPending)return;
   over=true; winPending=true;
@@ -1117,7 +1136,9 @@ function triggerWin(){
     for(let i=0;i<6;i++) tone(700+i*120,.07,'sine',.09,i*.06);
     updateHUD();
   }
-  setTimeout(showWin,900);
+  applyPerfectBonus();
+  startCelebration(1.8);
+  setTimeout(showWin,2200);
 }
 function afterMove(){
   if(over||starFinish)return;
@@ -1175,14 +1196,14 @@ function shuffleBoard(){
   list.forEach(c=>{ c.pulse=1; });
 }
 
-/* ================= 3-Sterne-Kettenreaktion (abgesichert) ================= */
+/* ================= 3-Sterne-Finale ================= */
 function startFinale(){
   if(finPhase>0)return;
   finPhase=1; finT=0; finPopT=0; finPopped=0;
-  over=true;              // ab jetzt kontrolliert nur noch das Finale das Spiel
+  over=true;
   clearTool();
   banner('⭐ 3 STERNE! KETTENREAKTION!',true);
-  sRush(); shake(12); flash(.3); vib(60);
+  sRush(); shake(12); flash(.3); vib(60); zoomPulse();
   if(!lowFX) candyRain();
 }
 function boardHasCandies(){
@@ -1202,6 +1223,7 @@ function popFinaleCandy(){
         const x=cand.c*cell+cell/2, y=cand.r*cell+cell/2;
         burst(x,y,'#8a4b2d',22);
         waves.push({x,y,t:0,life:.55,max:cell*3.2});
+        explodeFirework({x,y,color:'#ffd23f'});
         floaters.push({x,y:y-cell*.5,txt:'👹 Boss überrannt!',t:0,life:1.2,size:22,gold:true});
         sBossDie(); shake(14); vib(70);
       }
@@ -1239,7 +1261,9 @@ function finishStarLevel(){
     for(let i=0;i<6;i++) tone(700+i*120,.07,'sine',.09,i*.06);
     updateHUD();
   }
-  setTimeout(showWin,750);
+  applyPerfectBonus();
+  startCelebration(2.2);
+  setTimeout(showWin,2700);
 }
 function updateFinale(dt){
   if(!starFinish||finPhase===0||finPhase>=3)return;
@@ -1261,6 +1285,82 @@ function updateFinale(dt){
   }else if(finPhase===2&&finT>.7){
     finPhase=3;
     finishStarLevel();
+  }
+}
+
+/* ================= Feuerwerk ================= */
+function launchFirework(x){
+  if(fwRockets.length>6)return;
+  const sx=x!==undefined?x:sizePx*(.15+rnd()*.7);
+  const g=cell*20;
+  const targetY=sizePx*(.12+rnd()*.3);
+  const vy=-Math.sqrt(2*g*Math.max(cell*2,sizePx*.8-targetY));
+  fwRockets.push({x:sx,y:sizePx+6,vx:(rnd()-.5)*40,vy,g,color:COLORS[Math.floor(rnd()*COLORS.length)].base,t:0});
+  tone(300+rnd()*200,.35,'sine',.05,0,520);
+}
+function explodeFirework(r){
+  const n=lowFX?24:48;
+  for(let i=0;i<n;i++){
+    const an=rnd()*Math.PI*2, sp=cell*(2+rnd()*6);
+    fwSparks.push({x:r.x,y:r.y,vx:Math.cos(an)*sp,vy:Math.sin(an)*sp,g:cell*9,
+      life:.7+rnd()*.6,t:0,color:rnd()<.25?'#ffffff':r.color,r:cell*(.05+rnd()*.06)});
+  }
+  if(fwSparks.length>420) fwSparks.splice(0,fwSparks.length-420);
+  waves.push({x:r.x,y:r.y,t:0,life:.5,max:cell*2.2});
+  flash(.12); shake(4); vib(15);
+  noiseBurst(.28,.2,1000);
+  tone(600+rnd()*600,.18,'triangle',.11);
+  for(let i=0;i<3;i++) tone(900+rnd()*900,.05,'triangle',.05,.06+i*.06);
+}
+function startCelebration(dur){
+  celebT=dur; celebLaunch=0;
+}
+function updateFireworks(dt){
+  if(celebT>0){
+    celebT-=dt; celebLaunch-=dt;
+    if(celebLaunch<=0){ celebLaunch=.28; launchFirework(); }
+    if(!lowFX&&Math.random()<dt*8){
+      pushParticle({kind:'star',x:rnd()*sizePx,y:-10,vx:(rnd()-.5)*30,vy:60+rnd()*80,g:cell*4,
+        life:1.2,t:0,color:'#ffd23f',r:cell*(.06+rnd()*.06),rot:rnd()*6,vr:(rnd()-.5)*4});
+    }
+  }
+  for(let i=fwRockets.length-1;i>=0;i--){
+    const r=fwRockets[i];
+    r.t+=dt; r.x+=r.vx*dt; r.y+=r.vy*dt; r.vy+=r.g*dt;
+    if(Math.random()<.55){
+      pushParticle({kind:'dot',x:r.x,y:r.y+4,vx:(rnd()-.5)*16,vy:14,g:0,life:.22,t:0,color:'#ffd9a0',r:cell*.035,rot:0,vr:0});
+    }
+    if(r.vy>=-cell*1.1||r.y<cell*.4){
+      explodeFirework(r);
+      fwRockets.splice(i,1);
+    }
+  }
+  for(const s of fwSparks){
+    s.t+=dt; s.x+=s.vx*dt; s.y+=s.vy*dt; s.vy+=s.g*dt; s.vx*=(1-dt*1.1);
+  }
+  fwSparks=fwSparks.filter(s=>s.t<s.life);
+  if(sweepT>0)sweepT-=dt;
+}
+function drawFireworks(){
+  for(const r of fwRockets){
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(r.x,r.y,3,0,7); ctx.fill();
+    ctx.fillStyle='rgba(255,220,160,.6)';
+    ctx.beginPath(); ctx.arc(r.x,r.y+7,2,0,7); ctx.fill();
+  }
+  if(fwSparks.length){
+    ctx.save();
+    ctx.globalCompositeOperation='lighter';
+    for(const s of fwSparks){
+      const a=Math.max(0,1-s.t/s.life);
+      ctx.globalAlpha=a;
+      ctx.fillStyle=s.color;
+      ctx.beginPath(); ctx.arc(s.x,s.y,Math.max(.5,s.r*(.5+a)),0,7); ctx.fill();
+      ctx.globalAlpha=a*.35;
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r*2.4*a,0,7); ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha=1;
   }
 }
 
@@ -1290,7 +1390,7 @@ function setTool(t){
 
 /* ================= FX ================= */
 function pushParticle(p){
-  if(particles.length>220)particles.shift();
+  if(particles.length>240)particles.shift();
   particles.push(p);
 }
 function burst(x,y,color,n){
@@ -1436,6 +1536,7 @@ function resetCommon(){
   st='idle'; stT=0; pendingSwap=null; pendingTransforms=[]; turnMaxCombo=0; comboCount=0;
   bossWin=false;
   starFinish=false; finPhase=0; finT=0; finPopT=0; finPopped=0; winPending=false;
+  fwRockets=[]; fwSparks=[]; celebT=0; celebLaunch=0; sweepT=0; lastPerfect=false;
   mods={type:'score'}; feverMult=1; rushBonusMoves=2;
   document.body.classList.remove('rushActive');
   $('boardFrame').classList.remove('rush');
@@ -1458,7 +1559,6 @@ function startLevel(lv){
     goal=1800+(lv-1)*1400;
     moves=22;
     mods=levelMods(lv);
-    /* Varianten anwenden */
     if(mods.sprint){ moves=15; goal=Math.round(goal*.7); }
     if(mods.marathon){ moves=28; goal=Math.round(goal*1.4); }
     if(mods.goldrush){ goldTimer=2.5; }
@@ -1593,6 +1693,7 @@ function showWin(){
   $('winCombo').textContent='×'+levelMaxCombo;
   if(lastWinBonus>0){ $('winBonusLine').style.display='block'; $('winBonus').textContent='+'+fmt(lastWinBonus); }
   else $('winBonusLine').style.display='none';
+  $('winPerfectLine').style.display=lastPerfect?'block':'none';
   $('recLineWin').classList.toggle('isNew',newRec);
   const spans=$('winStars').children;
   [...spans].forEach(s=>s.classList.remove('earn'));
@@ -1917,6 +2018,23 @@ function drawCandyAt(cand){
   ctx.scale(sc*(1+.18*sq), sc*(1-.22*sq));
   const spr=spriteCache&&spriteCache[spriteKey(cand)];
   if(spr){ const w=spr.width/dpr; ctx.drawImage(spr,-w/2,-w/2,w,w); }
+  if(!lowFX){
+    const twk=(tGlobal*.55+cand.phase)%2.8;
+    if(twk<.35){
+      const a=Math.sin(twk/.35*Math.PI);
+      ctx.save();
+      ctx.globalAlpha=a;
+      ctx.translate(cell*.17,-cell*.21);
+      ctx.rotate(tGlobal*2);
+      const sr=cell*.09;
+      ctx.fillStyle='#fff';
+      ctx.beginPath();
+      ctx.moveTo(0,-sr); ctx.lineTo(sr*.3,-sr*.3); ctx.lineTo(sr,0); ctx.lineTo(sr*.3,sr*.3);
+      ctx.lineTo(0,sr); ctx.lineTo(-sr*.3,sr*.3); ctx.lineTo(-sr,0); ctx.lineTo(-sr*.3,-sr*.3);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  }
   ctx.restore();
 }
 function drawJelly(){
@@ -2096,7 +2214,25 @@ function draw(){
     ctx.beginPath(); ctx.arc(w.x,w.y,Math.max(1,k*w.max),0,7); ctx.stroke();
     ctx.globalAlpha=1;
   }
+  /* Regenbogen-Sweep (Rausch-Start) + Dauer-Schimmer im Rausch */
+  if(sweepT>0){
+    const k=1-sweepT/.7, x=k*(sizePx+400)-200;
+    ctx.save(); ctx.globalAlpha=.25;
+    const gg=ctx.createLinearGradient(x-120,0,x+120,0);
+    gg.addColorStop(0,'rgba(255,77,109,0)');gg.addColorStop(.2,'#ff4d6d');gg.addColorStop(.4,'#ffd23f');
+    gg.addColorStop(.6,'#2ec27e');gg.addColorStop(.8,'#4aa8ff');gg.addColorStop(1,'rgba(74,168,255,0)');
+    ctx.fillStyle=gg; ctx.fillRect(x-120,0,240,sizePx);
+    ctx.restore();
+  }else if(rush&&!lowFX){
+    const k=(tGlobal%1.1)/1.1, x=k*(sizePx+300)-150;
+    ctx.save(); ctx.globalAlpha=.06;
+    const gg=ctx.createLinearGradient(x-80,0,x+80,0);
+    gg.addColorStop(0,'rgba(255,255,255,0)');gg.addColorStop(.5,'#fff');gg.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=gg; ctx.fillRect(x-80,0,160,sizePx);
+    ctx.restore();
+  }
   for(const p of particles) drawParticle(p);
+  drawFireworks();
   for(const f of floaters){
     const k=Math.min(1,f.t*7), a=1-Math.pow(f.t/f.life,2);
     ctx.save(); ctx.globalAlpha=Math.max(0,a);
@@ -2162,6 +2298,7 @@ function update(dt,rawDt){
       const k=easeOut(Math.min(1,cand.tw.t/cand.tw.dur));
       cand.x=cand.tw.x0+(cand.tw.x1-cand.tw.x0)*k;
       cand.y=cand.tw.y0+(cand.tw.y1-cand.tw.y0)*k;
+      if(Math.random()<.35) pushParticle({kind:'dot',x:cand.x,y:cand.y,vx:(rnd()-.5)*30,vy:(rnd()-.5)*30,g:0,life:.22,t:0,color:'#ffffff',r:cell*.04,rot:0,vr:0});
       if(cand.tw.t>=cand.tw.dur){ cand.x=cand.tw.x1; cand.y=cand.tw.y1; cand.tw=null; }
     }else if(cand.falling){
       cand.vy=Math.min(cell*26,cand.vy+cell*58*dt);
@@ -2181,6 +2318,7 @@ function update(dt,rawDt){
   }
 
   updateFinale(dt);
+  updateFireworks(dt);
 
   if(st==='swapping'&&stT>=.15){
     const a=pendingSwap.a,b=pendingSwap.b;
@@ -2239,7 +2377,8 @@ function update(dt,rawDt){
       zeitLeft=0; over=true;
       tone(120,.45,'sawtooth',.2,0,-60);
       updateHUD();
-      setTimeout(showWin,500);
+      startCelebration(1.5);
+      setTimeout(showWin,1900);
     }else updateHUD();
   }
   if(started&&st==='idle'&&!over&&!starFinish){
